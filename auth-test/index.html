@@ -3,33 +3,58 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>認証方式PoC - テストB (GitHub Pages)</title>
+  <title>体験会管理ボード API 動作確認（社内テスト用）</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
     h1 { font-size: 18px; }
-    #result, #log { white-space: pre-wrap; background: #f4f4f4; padding: 12px; border-radius: 6px; margin-top: 16px; font-size: 13px; }
+    p.notice { color: #a00; font-weight: bold; font-size: 13px; }
+    section { border: 1px solid #ddd; border-radius: 8px; padding: 12px 16px; margin-top: 16px; }
+    button { font-size: 14px; padding: 8px 12px; cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: 0.5; }
+    #result, #log { white-space: pre-wrap; background: #f4f4f4; padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 13px; }
     .ok { color: #0a7d2c; font-weight: bold; }
     .ng { color: #c0392b; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>テストB: GitHub Pages → GAS(/exec) 連携</h1>
+  <h1>体験会管理ボード API 動作確認（社内テスト用）</h1>
+  <p class="notice">このページは段階1の動作確認専用です。書込・削除系の操作は一切行いません。</p>
 
-  <!-- GAS検証用デプロイの /exec URL -->
   <div id="g_id_onload"
        data-client_id="796082042718-r5rrmp24gvierdjvhfap0jrfk63me5qd.apps.googleusercontent.com"
        data-callback="handleCredentialResponse">
   </div>
   <div class="g_id_signin" data-type="standard"></div>
 
-  <div id="result">未ログイン</div>
+  <div id="loginResult">未ログイン</div>
+
+  <section>
+    <h2 style="font-size:14px;">1. getBootstrap（userName / fiscalYear / userAreas / isMasterAdmin）</h2>
+    <button id="btnBootstrap" disabled onclick="callBootstrap()">getBootstrap を呼ぶ</button>
+    <div id="bootstrapResult"></div>
+  </section>
+
+  <section>
+    <h2 style="font-size:14px;">2. getSchoolList（件数のみ表示）</h2>
+    <button id="btnSchoolList" disabled onclick="callSchoolList()">getSchoolList を呼ぶ</button>
+    <div id="schoolListResult"></div>
+  </section>
+
+  <section>
+    <h2 style="font-size:14px;">3. ホワイトリスト外の関数名（checkAccess / doGet）→ BAD_REQUEST確認</h2>
+    <button id="btnRejectCheck" disabled onclick="callWhitelistRejectionCheck()">拒否確認を実行</button>
+    <div id="rejectResult"></div>
+  </section>
+
   <h2 style="font-size:14px;">ログ</h2>
   <div id="log"></div>
 
   <script>
-    // 検証用GASデプロイの /exec URL（本番とは無関係の別プロジェクト）
-    var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbx4FhEcpwkl3StySR58fFQqUU5-kb0bfy63NuNhgfESzQ_FoHQnvYIuwceVGpG2bRIFYQ/exec';
+    // 段階1・新デプロイ（@60）の /exec URL。本番デプロイ（@59・現行画面用）とは別物
+    var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycby9cHvV65ggRWLezvQG1WE8SwqcP_YvCX3aoBN-VhtFnObRVfzfHqwir_vfGYm6gPrL/exec';
+
+    var sessionToken = null;
 
     var logEl = document.getElementById('log');
     function appendLog(msg) {
@@ -40,57 +65,114 @@
       appendLog('[window error] ' + e.message);
     });
 
-    var origConsoleError = console.error;
-    console.error = function () {
-      appendLog('[console.error] ' + Array.prototype.slice.call(arguments).join(' '));
-      origConsoleError.apply(console, arguments);
-    };
-
     function postToGas(action, extra) {
       var body = Object.assign({ action: action }, extra);
       return fetch(GAS_EXEC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' }, // プリフライト回避のためtext/plain固定
+        redirect: 'follow',
         body: JSON.stringify(body)
       }).then(function (res) {
         return res.json();
       });
     }
 
+    // sessionToken・IDトークンは画面にもログにも本体を出さず、長さのみ表示する
+    function redactForLog(obj) {
+      var clone = JSON.parse(JSON.stringify(obj));
+      if (clone.result && typeof clone.result.sessionToken === 'string') {
+        clone.result.sessionToken = '(省略・長さ=' + clone.result.sessionToken.length + ')';
+      }
+      return clone;
+    }
+
     function handleCredentialResponse(response) {
       appendLog('ID token received (length=' + (response.credential || '').length + ')');
-      document.getElementById('result').textContent = 'ログイン処理中...';
+      document.getElementById('loginResult').textContent = 'ログイン処理中...';
 
       postToGas('login', { idToken: response.credential })
-        .then(function (loginResult) {
-          appendLog('login result: ' + JSON.stringify(loginResult));
+        .then(function (loginResultRaw) {
+          appendLog('login result: ' + JSON.stringify(redactForLog(loginResultRaw)));
 
-          if (!loginResult.ok || !loginResult.allowed) {
-            renderResult(loginResult, null);
-            return;
+          var el = document.getElementById('loginResult');
+          if (loginResultRaw.ok) {
+            sessionToken = loginResultRaw.result.sessionToken;
+            el.innerHTML = '<span class="ok">ログイン成功（sessionToken 長さ=' + sessionToken.length + '）</span>';
+            document.getElementById('btnBootstrap').disabled = false;
+            document.getElementById('btnSchoolList').disabled = false;
+            document.getElementById('btnRejectCheck').disabled = false;
+          } else {
+            el.innerHTML = '<span class="ng">ログイン失敗: [' + loginResultRaw.code + '] ' + loginResultRaw.message + '</span>';
           }
-
-          return postToGas('whoami', { sessionToken: loginResult.sessionToken })
-            .then(function (whoamiResult) {
-              appendLog('whoami result: ' + JSON.stringify(whoamiResult));
-              renderResult(loginResult, whoamiResult);
-            });
         })
         .catch(function (err) {
           appendLog('[fetch error] ' + err.message);
-          document.getElementById('result').innerHTML = '<span class="ng">通信エラー: ' + err.message + '</span>';
+          document.getElementById('loginResult').innerHTML = '<span class="ng">通信エラー: ' + err.message + '</span>';
         });
     }
 
-    function renderResult(loginResult, whoamiResult) {
-      var el = document.getElementById('result');
-      if (loginResult.ok && loginResult.allowed && whoamiResult && whoamiResult.ok) {
-        el.innerHTML = '<span class="ok">許可: ' + whoamiResult.email + '</span>\nsessionToken: ' + loginResult.sessionToken;
-      } else if (loginResult.ok && !loginResult.allowed) {
-        el.innerHTML = '<span class="ng">不許可: ' + loginResult.email + ' (' + loginResult.reason + ')</span>';
-      } else {
-        el.innerHTML = '<span class="ng">検証エラー: ' + loginResult.reason + '</span>';
-      }
+    function callApi(fn) {
+      return postToGas('call', { sessionToken: sessionToken, fn: fn, args: [] });
+    }
+
+    function callBootstrap() {
+      var el = document.getElementById('bootstrapResult');
+      el.textContent = '実行中...';
+      callApi('getBootstrap').then(function (result) {
+        appendLog('getBootstrap result: ' + JSON.stringify(result));
+        if (result.ok) {
+          var r = result.result;
+          el.innerHTML = '<span class="ok">OK</span>\n' +
+            'userName: ' + r.userName + '\n' +
+            'fiscalYear: ' + r.fiscalYear + '\n' +
+            'userAreas: ' + JSON.stringify(r.userAreas) + '\n' +
+            'isMasterAdmin: ' + r.isMasterAdmin;
+        } else {
+          el.innerHTML = '<span class="ng">[' + result.code + '] ' + result.message + '</span>';
+        }
+      }).catch(function (err) {
+        appendLog('[fetch error] ' + err.message);
+        el.innerHTML = '<span class="ng">通信エラー: ' + err.message + '</span>';
+      });
+    }
+
+    function callSchoolList() {
+      var el = document.getElementById('schoolListResult');
+      el.textContent = '実行中...';
+      callApi('getSchoolList').then(function (result) {
+        // 一覧の中身はログにも画面にも出さず、件数のみ扱う
+        if (result.ok) {
+          appendLog('getSchoolList result: ok (件数=' + (result.result || []).length + ')');
+          el.innerHTML = '<span class="ok">OK</span>　件数: ' + (result.result || []).length;
+        } else {
+          appendLog('getSchoolList result: ' + JSON.stringify(result));
+          el.innerHTML = '<span class="ng">[' + result.code + '] ' + result.message + '</span>';
+        }
+      }).catch(function (err) {
+        appendLog('[fetch error] ' + err.message);
+        el.innerHTML = '<span class="ng">通信エラー: ' + err.message + '</span>';
+      });
+    }
+
+    function callWhitelistRejectionCheck() {
+      var el = document.getElementById('rejectResult');
+      el.textContent = '実行中...';
+      Promise.all([callApi('checkAccess'), callApi('doGet')]).then(function (results) {
+        var checkAccessResult = results[0];
+        var doGetResult = results[1];
+        appendLog('checkAccess result: ' + JSON.stringify(checkAccessResult));
+        appendLog('doGet result: ' + JSON.stringify(doGetResult));
+
+        var checkAccessOk = !checkAccessResult.ok && checkAccessResult.code === 'BAD_REQUEST';
+        var doGetOk = !doGetResult.ok && doGetResult.code === 'BAD_REQUEST';
+
+        el.innerHTML =
+          'checkAccess: ' + (checkAccessOk ? '<span class="ok">BAD_REQUESTで正しく拒否</span>' : '<span class="ng">想定外の結果: [' + checkAccessResult.code + '] ' + checkAccessResult.message + '</span>') + '\n' +
+          'doGet: ' + (doGetOk ? '<span class="ok">BAD_REQUESTで正しく拒否</span>' : '<span class="ng">想定外の結果: [' + doGetResult.code + '] ' + doGetResult.message + '</span>');
+      }).catch(function (err) {
+        appendLog('[fetch error] ' + err.message);
+        el.innerHTML = '<span class="ng">通信エラー: ' + err.message + '</span>';
+      });
     }
   </script>
 </body>
