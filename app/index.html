@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data:; font-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Kicks×crefus 体験会管理ボード</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="globalErrorBanner" class="kcb-error-banner" hidden></div>
+
+  <div id="loginOverlay" class="kcb-overlay" hidden>
+    <div class="kcb-card">
+      <h1>Kicks×crefus 体験会管理ボード</h1>
+      <div id="googleSignInButton"></div>
+      <p id="loginError" class="kcb-error" hidden></p>
+    </div>
+  </div>
+
+  <div id="mainScreen" hidden>
+    <header class="kcb-header">
+      <span>Kicks×crefus 体験会管理ボード</span>
+      <button id="logoutButton" type="button">ログアウト</button>
+    </header>
+    <main>
+      <dl class="kcb-info">
+        <dt>担当者名</dt><dd id="infoUserName"></dd>
+        <dt>年度</dt><dd id="infoFiscalYear"></dd>
+        <dt>エリア</dt><dd id="infoUserAreas"></dd>
+        <dt>マスタ管理権限</dt><dd id="infoIsMasterAdmin"></dd>
+        <dt>有効期限（目安）</dt><dd id="infoExpiresAt"></dd>
+      </dl>
+      <p class="kcb-notice">本画面は段階2-2の骨組みです。本画面の移植は段階2-3で行います。</p>
+    </main>
+  </div>
+
+  <div id="loadingOverlay" class="kcb-overlay kcb-loading-overlay" hidden>
+    <p>読み込み中...</p>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/messages.js" defer></script>
+  <script src="js/gas-shim.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

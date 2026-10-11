@@ -1,0 +1,154 @@
+:root {
+  color-scheme: light;
+  --bg: #FBF9F3;
+  --accent: #C97A1E;
+  --accent-text: #8A4F0E;
+  --text: #333333;
+  --error: #C0392B;
+  --border: #DDDDDD;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* クリックジャッキング対策：フレーム外で開かれていることが確認できるまで本文を表示しない */
+body {
+  display: none;
+}
+
+body.kcb-visible {
+  display: block;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.kcb-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.kcb-card {
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.kcb-card h1 {
+  font-size: 18px;
+  margin: 0 0 20px;
+  color: var(--accent-text);
+}
+
+#googleSignInButton {
+  display: flex;
+  justify-content: center;
+}
+
+.kcb-error {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--error);
+}
+
+.kcb-error-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--error);
+  background: #FDECEA;
+  border-bottom: 1px solid var(--error);
+}
+
+.kcb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+}
+
+.kcb-header button {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.kcb-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.kcb-info dt {
+  font-weight: bold;
+  color: var(--accent-text);
+}
+
+.kcb-info dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.kcb-notice {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #888888;
+}
+
+.kcb-loading-overlay p {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 20px;
+}
+
+button {
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: #ffffff;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
