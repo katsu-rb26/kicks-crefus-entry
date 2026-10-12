@@ -54,15 +54,6 @@
     safeRemoveItem(KEY_EXPIRES_AT);
   }
 
-  function formatExpiresAt(expiresAt) {
-    if (!expiresAt) return '不明';
-    try {
-      return new Date(expiresAt).toLocaleString('ja-JP');
-    } catch (e) {
-      return '不明';
-    }
-  }
-
   // ==== 画面表示 ====
   function showLoading(visible) {
     document.getElementById('loadingOverlay').hidden = !visible;
@@ -100,15 +91,11 @@
   }
 
   function showMainScreen(bootstrap, expiresAt) {
-    document.getElementById('infoUserName').textContent = bootstrap.userName || '';
-    document.getElementById('infoFiscalYear').textContent = bootstrap.fiscalYear || '';
-    document.getElementById('infoUserAreas').textContent = (bootstrap.userAreas || []).join('、') || 'なし';
-    document.getElementById('infoIsMasterAdmin').textContent = bootstrap.isMasterAdmin ? 'あり' : 'なし';
-    document.getElementById('infoExpiresAt').textContent = formatExpiresAt(expiresAt);
     hideBanner();
     clearLoginError();
     document.getElementById('loginOverlay').hidden = true;
     document.getElementById('mainScreen').hidden = false;
+    if (window.KcbAuth.onBootstrapReady) window.KcbAuth.onBootstrapReady(bootstrap, expiresAt);
   }
 
   // ==== セッション切れ（call実行中にAUTH_REQUIREDを受けた場合。gas-shim.jsから呼ばれる） ====
@@ -236,6 +223,8 @@
 
   window.KcbAuth = {
     init: init,
-    logout: logout
+    logout: logout,
+    // 段階2-3b: ログイン成功時にapp.jsが差し替える（board.jsの起動フック）
+    onBootstrapReady: null
   };
 })();

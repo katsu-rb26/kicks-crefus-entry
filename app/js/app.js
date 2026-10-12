@@ -1,6 +1,6 @@
 /**
- * クリックジャッキング対策（フレーム外判定）と、画面全体の初期化の配線のみを行う。
- * 本画面の移植は段階2-3で行うため、ここではスタブ画面の表示に必要な配線だけを持つ。
+ * クリックジャッキング対策（フレーム外判定）と、画面全体の初期化の配線を行う。
+ * ログイン成功後にauth.jsから受け取ったbootstrapでboard.jsの初期化を起動する。
  */
 (function () {
   // フレーム外で開かれていると判定できるまで、body(CSS側でdisplay:noneの既定)は表示しない。
@@ -14,6 +14,11 @@
     document.body.classList.add('kcb-visible');
   }
 })();
+
+// ログイン成功（getBootstrap完了）後にauth.jsから呼ばれる。ログイン前はboard.jsを初期化しない。
+window.KcbAuth.onBootstrapReady = function (bootstrap) {
+  window.KcbBoard.init(bootstrap);
+};
 
 document.addEventListener('DOMContentLoaded', function () {
   var logoutButton = document.getElementById('logoutButton');
