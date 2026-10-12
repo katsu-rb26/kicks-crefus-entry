@@ -20,7 +20,6 @@
     let currentAreaFilter = ''; // '' = 全エリア
     let schoolList = [];
     const timeOptions = buildTimeOptions_();
-    let mastersLoadedCount = 0;
 
     let recordCache = {}; // No をキーに、編集モーダル/ホバーポップアップ用に最新レコードを保持
     let rawTextCache = {}; // No をキーに、元メール本文をキャッシュ（一覧表示後にバックグラウンドで取得）
@@ -33,66 +32,7 @@
       document.getElementById('boardUserName').textContent = bootstrap.userName || '';
       startSplashSequence_();
 
-      google.script.run
-        .withSuccessHandler(function (list) {
-          schoolList = list || [];
-          populateSchoolFilter(schoolList);
-          populateSelectOptions_('register-教室名', [''].concat(schoolList), '(未選択)');
-        })
-        .withFailureHandler(function (e) { console.error('getSchoolList failed:', e); })
-        .getSchoolList();
-
-      google.script.run
-        .withSuccessHandler(function (list) {
-          mediaList = list || [];
-          populateSelectOptions_('edit-媒体', [''].concat(mediaList), '(未選択)');
-          populateSelectOptions_('register-媒体', [''].concat(mediaList), '(未選択)');
-          masterLoaded_();
-        })
-        .withFailureHandler(function (e) { console.error('getMediaList failed:', e); masterLoaded_(); })
-        .getMediaList();
-
-      google.script.run
-        .withSuccessHandler(function (list) { staffList = list || []; populateSelectOptions_('edit-担当者', [''].concat(staffList), '(未設定)'); masterLoaded_(); })
-        .withFailureHandler(function (e) { console.error('getStaffNameList failed:', e); masterLoaded_(); })
-        .getStaffNameList();
-
-      google.script.run
-        .withSuccessHandler(function (list) { statusList = list || []; populateSelectOptions_('edit-状況', [''].concat(statusList), '(未選択)'); masterLoaded_(); })
-        .withFailureHandler(function (e) { console.error('getStatusList failed:', e); masterLoaded_(); })
-        .getStatusList();
-
-      google.script.run
-        .withSuccessHandler(function (list) { resultList = list || []; populateSelectOptions_('edit-結果', [''].concat(resultList), '(未選択)'); masterLoaded_(); })
-        .withFailureHandler(function (e) { console.error('getResultList failed:', e); masterLoaded_(); })
-        .getResultList();
-
-      google.script.run
-        .withSuccessHandler(function (list) { courseList = list || []; populateSelectOptions_('edit-コース', [''].concat(courseList), '(未選択)'); masterLoaded_(); })
-        .withFailureHandler(function (e) { console.error('getCourseList failed:', e); masterLoaded_(); })
-        .getCourseList();
-
-      google.script.run
-        .withSuccessHandler(function (list) { markOptions = list || []; populateMarkOptions_(); masterLoaded_(); })
-        .withFailureHandler(function (e) { console.error('getMarkOptions failed:', e); masterLoaded_(); })
-        .getMarkOptions();
-
-      google.script.run
-        .withSuccessHandler(function (list) {
-          areaList = list || [];
-          // プライマリ（エリア1）が一覧に存在すればそれを初期選択、無ければ全エリア
-          const primary = CURRENT_USER_AREAS[0];
-          currentAreaFilter = (primary && areaList.indexOf(primary) !== -1) ? primary : '';
-          renderAreaTabs_();
-          masterLoaded_();
-        })
-        .withFailureHandler(function (e) { console.error('getAreaList failed:', e); masterLoaded_(); })
-        .getAreaList();
-
-      google.script.run
-        .withSuccessHandler(function (map) { schoolAreaMap = map || {}; masterLoaded_(); })
-        .withFailureHandler(function (e) { console.error('getSchoolAreaMap failed:', e); masterLoaded_(); })
-        .getSchoolAreaMap();
+      loadInitialMasters_();
 
       populateSelectOptions_('edit-KicksCrefus', ['', 'Kicks', 'crefus'], '（要確認）');
       populateSelectOptions_('edit-時間', timeOptions, '(未選択)');
@@ -115,6 +55,84 @@
           if (isModalOpen_('chartModalOverlay') && currentKpiChartType_) renderKpiChart_();
           updateOnlySelectedButton_();
         }, 200);
+      });
+    }
+
+    // google.script.run形式の呼び出しをPromiseで包む小さなヘルパー。
+    // window.KcbGas.callGas自体が既にPromiseを返す仕組みなので、関数名と引数を渡すだけの薄いラッパー
+    // （gas-shim.js自体は変更しない。失敗時はcode/messageを保ったErrorがそのままrejectされる）
+    function callGasAsync_(fnName, args) {
+      return window.KcbGas.callGas(fnName, args || []);
+    }
+
+    function showGlobalError_(text) {
+      const el = document.getElementById('globalErrorBanner');
+      if (el) { el.textContent = text; el.hidden = false; }
+    }
+
+    function hideGlobalError_() {
+      const el = document.getElementById('globalErrorBanner');
+      if (el) el.hidden = true;
+    }
+
+    // 媒体・担当者・状況・結果・コース・マーク・エリア一覧・教室エリア対応の選択肢（マスタ系9本）を
+    // 並列取得する。従来はmastersLoadedCountのカウンタで「8本そろったら一覧を読む」としていたが、
+    // Promise.allにまとめて置き換える。
+    // 挙動の変更点：
+    //  - getSchoolListは従来、一覧表示(getRecords)の待ち合わせに入っていなかった（成功/失敗どちらでも
+    //    カウンタに影響しなかった）。Promise.allでは9本すべての成功を待つため、getSchoolListの失敗も
+    //    一覧表示をブロックするようになる
+    //  - 従来は各マスタ取得が失敗してもmasterLoaded_()が呼ばれ続け、結果的に一覧表示(getRecords)は
+    //    常に実行されていた（失敗はconsole.errorのみでユーザーには見えなかった）。
+    //    Promise.allではいずれか1本でも失敗すると一覧表示を行わず、画面にエラーメッセージを表示する
+    function loadInitialMasters_() {
+      hideGlobalError_();
+      return Promise.all([
+        callGasAsync_('getSchoolList').then(function (list) {
+          schoolList = list || [];
+          populateSchoolFilter(schoolList);
+          populateSelectOptions_('register-教室名', [''].concat(schoolList), '(未選択)');
+        }),
+        callGasAsync_('getMediaList').then(function (list) {
+          mediaList = list || [];
+          populateSelectOptions_('edit-媒体', [''].concat(mediaList), '(未選択)');
+          populateSelectOptions_('register-媒体', [''].concat(mediaList), '(未選択)');
+        }),
+        callGasAsync_('getStaffNameList').then(function (list) {
+          staffList = list || [];
+          populateSelectOptions_('edit-担当者', [''].concat(staffList), '(未設定)');
+        }),
+        callGasAsync_('getStatusList').then(function (list) {
+          statusList = list || [];
+          populateSelectOptions_('edit-状況', [''].concat(statusList), '(未選択)');
+        }),
+        callGasAsync_('getResultList').then(function (list) {
+          resultList = list || [];
+          populateSelectOptions_('edit-結果', [''].concat(resultList), '(未選択)');
+        }),
+        callGasAsync_('getCourseList').then(function (list) {
+          courseList = list || [];
+          populateSelectOptions_('edit-コース', [''].concat(courseList), '(未選択)');
+        }),
+        callGasAsync_('getMarkOptions').then(function (list) {
+          markOptions = list || [];
+          populateMarkOptions_();
+        }),
+        callGasAsync_('getAreaList').then(function (list) {
+          areaList = list || [];
+          // プライマリ（エリア1）が一覧に存在すればそれを初期選択、無ければ全エリア
+          const primary = CURRENT_USER_AREAS[0];
+          currentAreaFilter = (primary && areaList.indexOf(primary) !== -1) ? primary : '';
+          renderAreaTabs_();
+        }),
+        callGasAsync_('getSchoolAreaMap').then(function (map) {
+          schoolAreaMap = map || {};
+        })
+      ]).then(function () {
+        loadRecords();
+      }).catch(function (err) {
+        console.error('[KcbBoard] 初期マスタ読み込み失敗:', err && err.code, err && err.message);
+        showGlobalError_(window.KCB_MESSAGES.textFor(err && err.code));
       });
     }
 
@@ -161,11 +179,6 @@
       });
     }
 
-    // 媒体・担当者・状況・結果・コース・マーク・エリア一覧・教室エリア対応の選択肢がそろってから一覧を描画する
-    function masterLoaded_() {
-      mastersLoadedCount++;
-      if (mastersLoadedCount >= 8) loadRecords();
-    }
 
     // エリアタブを描画する。担当している複数エリア（プライマリ優先）を左側にまとめ、
     // 続けて非担当エリア、最後に「全エリア」を並べる。ログイン担当者のプライマリエリアが初期選択される
@@ -259,7 +272,7 @@
     function loadRecords() {
       const school = document.getElementById('schoolFilter').value;
       rawTextCache = {}; // 表示内容が変わるたびにキャッシュを作り直す
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (records) {
           const filtered = applySortOrder_(applyOnlySelectedFilter_(applyDateFilter_(applyAreaFilter_(records))));
           renderTable(filtered);
@@ -415,7 +428,7 @@
     function prefetchRawTexts_(records) {
       if (!records || records.length === 0) return;
       const nos = records.map(function (r) { return r['No']; });
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (map) {
           Object.keys(map || {}).forEach(function (no) { rawTextCache[no] = map[no]; });
         })
@@ -491,7 +504,7 @@
       const no = el.dataset.no;
       const checked = el.checked;
       const tr = el.closest('tr');
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function () {
           if (recordCache[no]) recordCache[no]['連絡済みチェック'] = checked;
           // 連絡済みになった時点で新着マーキング（濃い黄色）を即座に解除する。
@@ -555,7 +568,7 @@
       const text = document.getElementById('register-pasteBox').value;
       if (!text.trim()) { alert('メール本文を貼り付けてください'); return; }
 
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (parsed) {
           document.getElementById('register-教室名').value = parsed['school'] || '';
           document.getElementById('register-KicksCrefus').value = parsed['kicksCrefus'] || '';
@@ -605,7 +618,7 @@
         if (!confirm('生徒名が未入力です。このまま登録しますか？')) return;
       }
 
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function () {
           closeRegisterModal();
           loadRecords();
@@ -677,7 +690,7 @@
         'マーク': selectedMarks
       };
 
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function () {
           closeEditModal();
           loadRecords();
@@ -861,7 +874,7 @@
         if (!confirm(checked.length + '件をごみ箱へ移動します。よろしいですか？')) return;
       }
 
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (res) {
           alert(res.deletedCount + '件をごみ箱へ移動しました');
           loadRecords();
@@ -876,7 +889,7 @@
     let dashboardEnrollmentRows = []; // 在籍・継続状況の現在表示中の値（保存時にここから読み取る）
 
     function loadDashboard() {
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (data) {
           dashboardLoaded = true;
           renderDashboard(data);
@@ -1171,7 +1184,7 @@
       const statusEl = document.getElementById('enrollmentSaveStatus');
       statusEl.textContent = '保存中…';
 
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function () {
           statusEl.textContent = '保存しました（' + new Date().toLocaleTimeString('ja-JP') + '）';
           loadDashboard(); // 継続率・合計等を再計算して反映
@@ -1199,7 +1212,7 @@
 
     // ==== マスタ管理タブ ====
     function initMasterTab_() {
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (names) {
           const sel = document.getElementById('masterSelect');
           sel.innerHTML = '';
@@ -1219,7 +1232,7 @@
     function loadMasterList() {
       const name = document.getElementById('masterSelect').value;
       if (!name) return;
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(renderMasterTable)
         .withFailureHandler(function (e) { alert('マスタの取得でエラーが発生しました: ' + e.message); })
         .getMasterListData(name);
@@ -1250,7 +1263,7 @@
     }
 
     function loadTrashList_() {
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(renderTrashTable_)
         .withFailureHandler(function (e) { alert('ごみ箱の取得でエラーが発生しました: ' + e.message); })
         .getTrashRecords();
@@ -1296,7 +1309,7 @@
     }
 
     function restoreTrashRow_(no) {
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function () {
           alert('復元しました');
           loadTrashList_();
@@ -1308,7 +1321,7 @@
 
     function permanentlyDeleteTrashRow_(no) {
       if (!confirm('完全に削除します。この操作は元に戻せません。よろしいですか？')) return;
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function () {
           alert('完全に削除しました');
           loadTrashList_();
@@ -1428,22 +1441,40 @@
         });
       });
 
-      google.script.run
+      window.KcbGas.scriptRun
         .withSuccessHandler(function (res) {
           alert('保存しました（' + res.rowCount + '件）');
           loadMasterList();
           if (name === 'マークマスタ') {
-            google.script.run.withSuccessHandler(function (list) { markOptions = list || []; populateMarkOptions_(); }).getMarkOptions();
+            window.KcbGas.scriptRun
+              .withSuccessHandler(function (list) { markOptions = list || []; populateMarkOptions_(); })
+              .withFailureHandler(function (e) {
+                console.error('getMarkOptions failed:', e);
+                alert('マークの選択肢の再取得に失敗しました。画面を再読み込みしてください: ' + e);
+              })
+              .getMarkOptions();
           }
           if (name === 'エリアマスタ') {
-            google.script.run.withSuccessHandler(function (list) {
-              areaList = list || [];
-              if (areaList.indexOf(currentAreaFilter) === -1) currentAreaFilter = '';
-              renderAreaTabs_();
-            }).getAreaList();
+            window.KcbGas.scriptRun
+              .withSuccessHandler(function (list) {
+                areaList = list || [];
+                if (areaList.indexOf(currentAreaFilter) === -1) currentAreaFilter = '';
+                renderAreaTabs_();
+              })
+              .withFailureHandler(function (e) {
+                console.error('getAreaList failed:', e);
+                alert('エリア一覧の再取得に失敗しました。画面を再読み込みしてください: ' + e);
+              })
+              .getAreaList();
           }
           if (name === '教室エリア対応表') {
-            google.script.run.withSuccessHandler(function (map) { schoolAreaMap = map || {}; }).getSchoolAreaMap();
+            window.KcbGas.scriptRun
+              .withSuccessHandler(function (map) { schoolAreaMap = map || {}; })
+              .withFailureHandler(function (e) {
+                console.error('getSchoolAreaMap failed:', e);
+                alert('教室エリア対応表の再取得に失敗しました。画面を再読み込みしてください: ' + e);
+              })
+              .getSchoolAreaMap();
           }
         })
         .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + e.message); })
