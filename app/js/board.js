@@ -816,11 +816,19 @@
       showPopupAt_(td, html);
     }
 
+    // 元メール本文はエスケープ後のHTML文字列ではなく、textContentでそのまま流し込む
+    // （リンクをaタグ化しない。折り返しは.hoverPopup自体のwhite-space:pre-wrapに委ねる）
     function showBodyPopup_(td) {
       const no = td.dataset.no;
       const text = rawTextCache.hasOwnProperty(no) ? (rawTextCache[no] || '（元メール本文がありません）') : '読み込み中…';
-      const html = '<h5>元メール本文</h5><p>' + escapeHtml_(text) + '</p>';
-      showPopupAt_(td, html);
+      const frag = document.createDocumentFragment();
+      const h5 = document.createElement('h5');
+      h5.textContent = '元メール本文';
+      const p = document.createElement('p');
+      p.textContent = text;
+      frag.appendChild(h5);
+      frag.appendChild(p);
+      showPopupAt_(td, frag);
     }
 
     // 電話番号は見間違い防止のため通常の2倍のフォントサイズで表示する
@@ -831,9 +839,15 @@
       showPopupAt_(td, html);
     }
 
-    function showPopupAt_(td, html) {
+    // contentは既存呼び出し元（escapeHtml_済みのHTML文字列）か、showBodyPopup_が渡すDocumentFragmentのいずれか
+    function showPopupAt_(td, content) {
       const popup = document.getElementById('hoverPopup');
-      popup.innerHTML = html;
+      popup.innerHTML = '';
+      if (typeof content === 'string') {
+        popup.innerHTML = content;
+      } else {
+        popup.appendChild(content);
+      }
       popup.style.display = 'block'; // サイズ計算のため先に表示してからoffsetWidth/Heightを参照する
 
       const rect = td.getBoundingClientRect();
@@ -930,7 +944,7 @@
       const tr = document.createElement('tr');
       if (isTotal) tr.className = 'totalRow';
       tr.innerHTML =
-        '<td>' + s.name + '</td>' +
+        '<td>' + escapeHtml_(s.name) + '</td>' +
         '<td>' + s.total + '</td>' +
         '<td>' + s.Kicks.received + '</td>' +
         '<td>' + s.crefus.received + '</td>' +
@@ -944,7 +958,7 @@
     function resultRow_(s, isTotal) {
       const tr = document.createElement('tr');
       if (isTotal) tr.className = 'totalRow';
-      tr.innerHTML = '<td>' + s.name + '</td>' + kcResultCells_(s.Kicks) + kcResultCells_(s.crefus);
+      tr.innerHTML = '<td>' + escapeHtml_(s.name) + '</td>' + kcResultCells_(s.Kicks) + kcResultCells_(s.crefus);
       return tr;
     }
 
@@ -1152,7 +1166,7 @@
 
       function numCell(field, value) {
         if (isTotal) return '<td>' + value + '</td>';
-        return '<td><input type="number" class="enrollInput" data-idx="' + i + '" data-field="' + field + '" value="' + value + '" min="0"></td>';
+        return '<td><input type="number" class="enrollInput" data-idx="' + i + '" data-field="' + field + '" value="' + escapeAttr_(value) + '" min="0"></td>';
       }
 
       tr.innerHTML =
