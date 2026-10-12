@@ -103,12 +103,6 @@ body.kcb-visible {
   color: var(--accent-text);
 }
 
-main {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
 .kcb-info {
   display: grid;
   grid-template-columns: auto 1fr;
