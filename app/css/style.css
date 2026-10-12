@@ -85,24 +85,6 @@ body.kcb-visible {
   border-bottom: 1px solid var(--error);
 }
 
-.kcb-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid var(--border);
-}
-
-.kcb-header button {
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--accent);
-  background: #ffffff;
-  color: var(--accent-text);
-}
-
 .kcb-info {
   display: grid;
   grid-template-columns: auto 1fr;
