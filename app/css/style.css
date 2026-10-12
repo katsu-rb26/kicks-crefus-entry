@@ -182,15 +182,12 @@ button:disabled {
     .brandLogos { display: flex; align-items: center; gap: 14px; }
     .brandLogo { display: block; width: auto; }
     .brandLogo-corp { height: 22px; opacity: 0.94; }
-    .brandLogo-unit { height: 17px; }
-    .brandDivider { width: 1px; height: 18px; background: var(--border-strong); }
     .appTitle {
       margin: 0; line-height: 1.2; display: flex; align-items: baseline;
       flex-wrap: wrap; column-gap: 10px; row-gap: 2px;
     }
-    .appTitleBrand {
-      font-size: 20px; font-weight: 800; letter-spacing: 0;
-      color: var(--accent-text);
+    .appTitleLogo {
+      height: 22px; width: auto; align-self: center;
     }
     .appTitleMain {
       font-size: 19px; font-weight: 500; letter-spacing: 1.5px;
@@ -202,6 +199,11 @@ button:disabled {
     }
     .appUserBadge {
       font-size: 11.5px; color: var(--text-secondary); white-space: nowrap;
+    }
+    .logoutBtn {
+      font-size: 12.5px; padding: 6px 12px; border-radius: 6px;
+      border: 1px solid var(--accent); background: var(--surface); color: var(--accent-text);
+      white-space: nowrap;
     }
     /* タブ内の大見出し：オレンジ系アクセントの左バーと文字間隔で洗練度を出す */
     .tabHeading {
@@ -496,6 +498,9 @@ button:disabled {
 
       /* ヘッダー：ロゴとログイン中表示を同じ行に（ロゴ左・ログイン中を右端寄せ） */
       .appBrand { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
+
+      /* タイトルロゴ：折り返しに耐えられるよう少し縮小 */
+      .appTitleLogo { height: 18px; }
 
       /* エリアタブ：折り返さず横一列でスクロール（PC一覧表と同じ考え方）、高さ・余白をボタン間で統一 */
       .areaTabs {
