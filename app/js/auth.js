@@ -99,7 +99,12 @@
   }
 
   // ==== セッション切れ（call実行中にAUTH_REQUIREDを受けた場合。gas-shim.jsから呼ばれる） ====
+  // trueの間にログインが成功した場合、ボードの再初期化ではなくページ再読み込みで最初からやり直す
+  // （board.jsはページ内で既に初期化済みの可能性があり、再初期化するとイベント登録等が二重になるため）
+  var sessionExpiredPending_ = false;
+
   function handleSessionExpired() {
+    sessionExpiredPending_ = true;
     clearSession();
     hideMainScreen();
     showLoginOverlay();
@@ -128,6 +133,10 @@
           return;
         }
         saveSession(res.result.sessionToken);
+        if (sessionExpiredPending_) {
+          location.reload();
+          return;
+        }
         return loadBootstrapAndShowMain();
       })
       .catch(function (err) {
