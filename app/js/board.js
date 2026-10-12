@@ -65,6 +65,17 @@
       return window.KcbGas.callGas(fnName, args || []);
     }
 
+    // withFailureHandlerに渡るeは現状、gas-shim.jsが文字列（message）として渡すが、
+    // code/messageを持つオブジェクトが渡される場合にも対応できるようにしておく。
+    // code優先→message→汎用文言の順でユーザー向け文言を返す。
+    function gasErrorText_(e) {
+      if (!e) return window.KCB_MESSAGES.textFor();
+      if (typeof e === 'string') return e;
+      if (e.code) return window.KCB_MESSAGES.textFor(e.code);
+      if (e.message) return e.message;
+      return window.KCB_MESSAGES.textFor();
+    }
+
     function showGlobalError_(text) {
       const el = document.getElementById('globalErrorBanner');
       if (el) { el.textContent = text; el.hidden = false; }
@@ -281,7 +292,7 @@
         })
         .withFailureHandler(function (e) {
           console.error('getRecords failed:', e);
-          alert('一覧の取得でエラーが発生しました: ' + e.message);
+          alert('一覧の取得でエラーが発生しました: ' + gasErrorText_(e));
         })
         .getRecords(school || null);
     }
@@ -512,7 +523,7 @@
           if (tr) tr.classList.toggle('newInquiry', !checked);
         })
         .withFailureHandler(function (e) {
-          alert('更新でエラーが発生しました: ' + e.message);
+          alert('更新でエラーが発生しました: ' + gasErrorText_(e));
           el.checked = !checked; // 失敗時は元に戻す
         })
         .updateRecord(no, '連絡済みチェック', checked);
@@ -589,7 +600,7 @@
           // 解析結果が入った状態で、ここで初めて入力項目セクションを表示する
           showRegisterFieldsSection_(true);
         })
-        .withFailureHandler(function (e) { alert('解析でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('解析でエラーが発生しました: ' + gasErrorText_(e)); })
         .parseInquiryText(text);
     }
 
@@ -623,7 +634,7 @@
           closeRegisterModal();
           loadRecords();
         })
-        .withFailureHandler(function (e) { alert('登録でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('登録でエラーが発生しました: ' + gasErrorText_(e)); })
         .registerRecord(record, receivedAtStr || null);
     }
 
@@ -695,7 +706,7 @@
           closeEditModal();
           loadRecords();
         })
-        .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + gasErrorText_(e)); })
         .updateRecordFields(no, fields);
     }
 
@@ -894,7 +905,7 @@
           loadRecords();
         })
         .withFailureHandler(function (e) {
-          alert('ごみ箱への移動でエラーが発生しました: ' + e.message);
+          alert('ごみ箱への移動でエラーが発生しました: ' + gasErrorText_(e));
         })
         .deleteRecords(checked);
     }
@@ -910,7 +921,7 @@
         })
         .withFailureHandler(function (e) {
           console.error('getDashboardData failed:', e);
-          alert('集計データの取得でエラーが発生しました: ' + e.message);
+          alert('集計データの取得でエラーが発生しました: ' + gasErrorText_(e));
         })
         .getDashboardData();
     }
@@ -1206,7 +1217,7 @@
         .withFailureHandler(function (e) {
           console.error('saveEnrollmentInputs failed:', e);
           statusEl.textContent = '';
-          alert('保存でエラーが発生しました: ' + e.message);
+          alert('保存でエラーが発生しました: ' + gasErrorText_(e));
         })
         .saveEnrollmentInputs(dashboardEnrollmentRows.map(function (r) {
           return {
@@ -1248,7 +1259,7 @@
       if (!name) return;
       window.KcbGas.scriptRun
         .withSuccessHandler(renderMasterTable)
-        .withFailureHandler(function (e) { alert('マスタの取得でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('マスタの取得でエラーが発生しました: ' + gasErrorText_(e)); })
         .getMasterListData(name);
     }
 
@@ -1279,7 +1290,7 @@
     function loadTrashList_() {
       window.KcbGas.scriptRun
         .withSuccessHandler(renderTrashTable_)
-        .withFailureHandler(function (e) { alert('ごみ箱の取得でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('ごみ箱の取得でエラーが発生しました: ' + gasErrorText_(e)); })
         .getTrashRecords();
     }
 
@@ -1329,7 +1340,7 @@
           loadTrashList_();
           loadRecords();
         })
-        .withFailureHandler(function (e) { alert('復元でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('復元でエラーが発生しました: ' + gasErrorText_(e)); })
         .restoreFromTrash(no);
     }
 
@@ -1340,7 +1351,7 @@
           alert('完全に削除しました');
           loadTrashList_();
         })
-        .withFailureHandler(function (e) { alert('削除でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('削除でエラーが発生しました: ' + gasErrorText_(e)); })
         .permanentlyDeleteFromTrash(no);
     }
 
@@ -1464,7 +1475,7 @@
               .withSuccessHandler(function (list) { markOptions = list || []; populateMarkOptions_(); })
               .withFailureHandler(function (e) {
                 console.error('getMarkOptions failed:', e);
-                alert('マークの選択肢の再取得に失敗しました。画面を再読み込みしてください: ' + e);
+                alert('マークの選択肢の再取得に失敗しました。画面を再読み込みしてください: ' + gasErrorText_(e));
               })
               .getMarkOptions();
           }
@@ -1477,7 +1488,7 @@
               })
               .withFailureHandler(function (e) {
                 console.error('getAreaList failed:', e);
-                alert('エリア一覧の再取得に失敗しました。画面を再読み込みしてください: ' + e);
+                alert('エリア一覧の再取得に失敗しました。画面を再読み込みしてください: ' + gasErrorText_(e));
               })
               .getAreaList();
           }
@@ -1486,12 +1497,12 @@
               .withSuccessHandler(function (map) { schoolAreaMap = map || {}; })
               .withFailureHandler(function (e) {
                 console.error('getSchoolAreaMap failed:', e);
-                alert('教室エリア対応表の再取得に失敗しました。画面を再読み込みしてください: ' + e);
+                alert('教室エリア対応表の再取得に失敗しました。画面を再読み込みしてください: ' + gasErrorText_(e));
               })
               .getSchoolAreaMap();
           }
         })
-        .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + e.message); })
+        .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + gasErrorText_(e)); })
         .saveMasterListData(name, rows);
     }
 
