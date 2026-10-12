@@ -97,6 +97,10 @@ body.kcb-visible {
 .kcb-header button {
   font-size: 13px;
   padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: #ffffff;
+  color: var(--accent-text);
 }
 
 main {
@@ -152,3 +156,495 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ==== 段階2-3b: 体験会管理ボード本画面（Index.html由来） ==== */
+
+    :root {
+      --bg: #FBF9F3;
+      --surface: #FFFFFF;
+      --board-border: #E8DEC7;
+      --border-strong: #D8C89C;
+      --text-primary: #2B2416;
+      --text-secondary: #7A6B4A;
+      --text-muted: #A6996F;
+      --accent: #C97A1E;
+      --accent-light: #FCEFDA;
+      --accent-text: #8A4F0E;
+    }
+    body {
+      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+      margin: 16px; background: var(--bg); color: var(--text-primary);
+    }
+    textarea { width: 100%; height: 140px; box-sizing: border-box; font-size: 13px; font-family: inherit; }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; margin-top: 16px; font-size: 12px; background: var(--surface); }
+    /* box-sizingをth/td共通でborder-boxにしないと、theadとtbodyで実際のセル幅が食い違い、
+       スティッキー列のleftオフセット計算と実描画がずれて隙間が出る */
+    th, td {
+      box-sizing: border-box; border-bottom: 1px solid var(--board-border); padding: 6px 8px;
+      text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    /* 一覧はtable-layout:fixedにして、内容量に関わらずCSSで指定した列幅を厳密に固定する
+       （autoレイアウトだと内容の幅によって列が広がり、スティッキー列のズレの原因になる）。
+       widthは全列の合計と完全一致させ、100%指定による余白分の比例拡大も起きないようにする */
+    #recordsTable { table-layout: fixed; width: 1634px; }
+    th { background: #FCF6E9; color: var(--text-secondary); font-weight: 500; font-size: 10.5px; }
+    tr.totalRow td { font-weight: bold; background: #F1EFE6; }
+    select, button, input[type=date], input[type=text] {
+      padding: 6px 10px; margin: 4px 4px 4px 0; border: 1px solid var(--board-border); border-radius: 5px; font-family: inherit; font-size: 12.5px;
+    }
+    button { cursor: pointer; background: var(--surface); color: var(--text-primary); }
+    button:hover { border-color: var(--border-strong); }
+    #onlySelectedBtn.active { background: var(--accent-light); color: var(--accent-text); border-color: var(--border-strong); }
+    h3, h4 { margin-bottom: 4px; }
+
+    /* ヘッダー：左にタイトル、右にロゴ（上段）とログイン中表示（下段、間隔を空けて）を配置 */
+    .appHeader {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap; margin: 0 0 22px;
+    }
+    .appBrand { display: flex; flex-direction: column; align-items: flex-end; gap: 11px; }
+    .brandLogos { display: flex; align-items: center; gap: 14px; }
+    .brandLogo { display: block; width: auto; }
+    .brandLogo-corp { height: 22px; opacity: 0.94; }
+    .brandLogo-unit { height: 17px; }
+    .brandDivider { width: 1px; height: 18px; background: var(--border-strong); }
+    .appTitle {
+      margin: 0; line-height: 1.2; display: flex; align-items: baseline;
+      flex-wrap: wrap; column-gap: 10px; row-gap: 2px;
+    }
+    .appTitleBrand {
+      font-size: 20px; font-weight: 800; letter-spacing: 0;
+      color: var(--accent-text);
+    }
+    .appTitleMain {
+      font-size: 19px; font-weight: 500; letter-spacing: 1.5px;
+      color: var(--text-primary);
+    }
+    .appTitleYear {
+      font-size: 12.5px; font-weight: 500; letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .appUserBadge {
+      font-size: 11.5px; color: var(--text-secondary); white-space: nowrap;
+    }
+    /* タブ内の大見出し：オレンジ系アクセントの左バーと文字間隔で洗練度を出す */
+    .tabHeading {
+      margin: 20px 0 12px; padding-left: 11px; border-left: 3px solid var(--accent);
+      font-size: 15px; font-weight: 700; letter-spacing: 0.8px; color: var(--accent-text);
+    }
+    .tableScroll {
+      overflow-x: auto; border: 1px solid var(--board-border); border-radius: 8px;
+      -webkit-overflow-scrolling: touch; /* iOSでの慣性スクロール（スワイプで滑らかに動く） */
+      scrollbar-width: auto;
+    }
+    /* 太めで見やすいスクロールバー（Chrome/Edge/Android等。iOS Safariはスクロール中のみ自動表示） */
+    .tableScroll::-webkit-scrollbar { height: 14px; }
+    .tableScroll::-webkit-scrollbar-track { background: var(--accent-light); border-radius: 8px; }
+    .tableScroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; }
+    .tableScroll::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    .iconBtn { cursor: pointer; background: none; border: none; font-size: 15px; padding: 2px 4px; color: var(--text-secondary); }
+    .iconBtn:hover { color: var(--accent-text); }
+
+    /* 一覧の列幅（短い項目は詰め、生徒名等は広めに） */
+    #recordsTable .col-check   { width: 28px; }
+    #recordsTable .col-date    { width: 88px; }
+    #recordsTable .col-school  { width: 52px; }
+    #recordsTable .col-type    { width: 60px; }
+    #recordsTable .col-name    { width: 110px; white-space: normal; }
+    #recordsTable .col-mark    { width: 54px; text-align: center; }
+    #recordsTable .col-kana    { width: 110px; white-space: normal; }
+    #recordsTable .col-grade   { width: 40px; }
+    #recordsTable .col-tel     { width: 115px; }
+    #recordsTable .col-media   { width: 90px; }
+    #recordsTable .col-status  { width: 90px; }
+    #recordsTable .col-time    { width: 65px; }
+    #recordsTable .col-staff   { width: 64px; }
+    #recordsTable .col-done    { width: 48px; }
+    #recordsTable .col-result  { width: 40px; }
+    #recordsTable .col-course  { width: 90px; }
+    #recordsTable .col-contact { width: 52px; text-align: center; }
+    #recordsTable .col-note    { width: 250px; white-space: normal; }
+    #recordsTable .col-body    { width: 36px; text-align: center; }
+
+    /* 行の高さは内容量に関わらず52pxで統一し、縦中央揃えにする */
+    #recordsTable tbody tr { height: 52px; }
+    #recordsTable tbody td { height: 52px; box-sizing: border-box; vertical-align: middle; }
+    #recordsTable tbody tr:hover td { background: #FDF9EE; }
+    #recordsTable tbody tr:hover td.sticky { background: #FDF9EE; }
+
+    /* 新着（連絡済み未対応）の行を濃いめの黄色で全体マーキングする。
+       既存のクリーム/オレンジ系配色（--accent-light等の淡いベージュ）とは
+       彩度・明度をはっきり分けて衝突を避け、状況バッジ等の淡い色が上に乗っても視認できるようにする */
+    #recordsTable tbody tr.newInquiry td { background: #FFD93D; }
+    #recordsTable tbody tr.newInquiry td.sticky { background: #FFD93D; }
+    #recordsTable tbody tr.newInquiry:hover td { background: #FFCF12; }
+    #recordsTable tbody tr.newInquiry:hover td.sticky { background: #FFCF12; }
+
+    .marks { text-align: center; font-size: 13px; letter-spacing: 1px; }
+
+    /* 区分・状況のバッジ表示 */
+    .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 500; }
+    .badge-kicks { background: var(--accent-light); color: var(--accent-text); }
+    .badge-crefus { background: #FCE4D4; color: #93401A; }
+    .badge-check { background: #F1EFE6; color: #8A8266; }
+
+    .status { display: inline-flex; align-items: center; font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; }
+    .status-新規受付 { background: #FBE3D0; color: #A2481B; }
+    .status-日程決定済み { background: #FBF0D6; color: #9A6C1B; }
+    .status-対応中 { background: #FBF0D6; color: #9A6C1B; }
+    .status-連絡付かず { background: #F7E0DC; color: #9A3B2E; }
+    .status-キャンセル { background: #F1F2DE; color: #6E7A22; }
+    .status-default { background: #F1EFE6; color: #8A8266; }
+
+    .contactCheck, #edit-連絡済みチェック { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+    /* 集計ダッシュボード：自動計算／手入力の区別バッジ */
+    .badge-auto, .badge-manual { display: inline-block; font-size: 10.5px; padding: 2px 8px; border-radius: 999px; margin-left: 6px; font-weight: 500; vertical-align: middle; }
+    .badge-auto { background: #E7F1E0; color: #3F6B2A; }
+    .badge-manual { background: var(--accent-light); color: var(--accent-text); }
+    .dashboardToolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+    .dashboardSection { margin-top: 22px; }
+    .dashboardHint { font-size: 11.5px; color: var(--text-secondary); margin: 4px 0 8px; }
+    .enrollInput { width: 54px; padding: 3px 4px; font-size: 11.5px; border: 1px solid var(--board-border); border-radius: 4px; background: #FEFCF6; box-sizing: border-box; }
+
+    /* 学年別内訳：縦スクロールを圧迫しないコンパクトなタイル表示（0名の学年も常に表示） */
+    .gradeGrid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .gradeTile {
+      min-width: 56px; padding: 4px 10px; border: 1px solid var(--board-border); border-radius: 6px;
+      background: var(--surface); text-align: center; line-height: 1.3;
+    }
+    .gradeTile .gradeName { font-size: 10px; color: var(--text-secondary); }
+    .gradeTile .gradeCount { font-size: 15px; font-weight: 700; color: var(--accent-text); }
+    .gradeTile.isZero .gradeCount { color: var(--text-muted); font-weight: 500; }
+    #enrollmentTable th, #enrollmentTable td { white-space: nowrap; }
+
+    /* 備考は2行までで省略表示（はみ出た分は…で省略） */
+    .noteClamp {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; white-space: normal; line-height: 1.3em; max-height: 2.7em; cursor: default;
+    }
+
+    /* ふりがな・生徒名：全角8文字以内は1行通常サイズ、9文字以上は2行折り返し＋縮小表示（省略しない） */
+    .wrapCell { line-height: 1.25; word-break: break-all; }
+    .wrapCell.small { font-size: 9.5px; line-height: 1.2; }
+
+    /* 電話番号ホバーポップアップの拡大表示 */
+    .telPopupText { font-size: 2em; margin: 0; white-space: nowrap; }
+
+    /* 生徒名・備考・本文セルにカーソルを合わせた時の共通ポップアップ */
+    .hoverPopup {
+      position: fixed; z-index: 300; background: var(--surface); border: 1px solid var(--board-border); border-radius: 8px;
+      padding: 10px 14px; max-width: 320px; max-height: 320px; overflow-y: auto; box-shadow: 0 6px 16px rgba(90,70,20,0.2);
+      font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; display: none;
+    }
+    .hoverPopup h5 { margin: 0 0 3px; font-size: 10px; color: var(--text-muted); font-weight: 500; }
+    .hoverPopup p { margin: 0 0 8px; }
+    .hoverPopup p:last-child { margin-bottom: 0; }
+    .hoverPopup hr { margin: 8px 0; border: none; border-top: 1px solid var(--board-border); }
+
+    /* 左側スティッキー列（チェック〜生徒名まで） */
+    #recordsTable th.sticky, #recordsTable td.sticky {
+      position: sticky; z-index: 2; background: var(--surface);
+    }
+    #recordsTable th.sticky { background: #FCF6E9; z-index: 3; }
+    #recordsTable .sticky-check   { left: 0px; }
+    #recordsTable .sticky-date    { left: 28px; }
+    #recordsTable .sticky-school  { left: 116px; }
+    #recordsTable .sticky-type    { left: 168px; }
+    #recordsTable .sticky-name    { left: 228px; box-shadow: 2px 0 2px -1px rgba(0,0,0,0.15); }
+
+    #dateSortHeader { cursor: pointer; user-select: none; }
+    #dateSortHeader:hover { color: var(--accent-text); }
+
+    .tabBar { margin-top: 6px; border-bottom: 1px solid var(--board-border); }
+    .tabButton {
+      background: none; border: 1px solid var(--board-border); border-bottom: none; color: var(--text-secondary);
+      padding: 8px 16px; margin-right: 4px; cursor: pointer; border-radius: 6px 6px 0 0;
+    }
+    .tabButton.active { background: #FCF6E9; font-weight: 500; color: var(--accent-text); }
+    .tabPanel { display: none; }
+    .tabPanel.active { display: block; }
+
+    /* エリアタブ（ログイン担当者のエリアが初期選択され、他エリアにもいつでも切り替えられる） */
+    .areaTabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .areaTab {
+      background: var(--surface); border: 1px solid var(--board-border); border-radius: 999px;
+      padding: 5px 14px; font-size: 12px; color: var(--text-secondary); cursor: pointer;
+    }
+    .areaTab.active { background: var(--accent-light); color: var(--accent-text); font-weight: 500; border-color: var(--border-strong); }
+
+    /* エリアタブとツールバーを視覚的にグルーピングする薄い区切り線 */
+    .toolbarDivider { border: none; border-top: 1px solid var(--board-border); margin: 10px 0 14px; }
+
+    /* ボタンの優先度：新規登録のみプライマリ（塗りつぶし）、それ以外はセカンダリ（輪郭線） */
+    .btnPrimary {
+      background: var(--accent); border: 1px solid var(--accent); color: #fff; font-weight: 600;
+    }
+    .btnPrimary:hover { background: var(--accent-text); border-color: var(--accent-text); }
+
+    .btnSecondary {
+      background: var(--surface); border: 1.5px solid var(--border-strong); color: var(--text-secondary);
+    }
+    .btnSecondary:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent-text); }
+
+    /* 削除系操作（ごみ箱へ移動）は他のセカンダリボタンよりほんのり注意を引く警告トーン */
+    .btnWarn { border-color: #D8A466; color: #9A6C1B; }
+    .btnWarn:hover { background: #FBF0D6; border-color: #C9861E; color: #9A6C1B; }
+
+    /* 使用頻度の低い操作（ごみ箱を見る）はテキストリンク寄りの控えめな表現に */
+    .btnLink {
+      background: none; border: none; box-shadow: none; color: var(--text-secondary); padding: 6px 4px;
+    }
+    .btnLink:hover { background: none; border-color: transparent; text-decoration: underline; color: var(--accent-text); }
+
+    /* 教室で絞り込み：使用頻度が高いため独立したグループとして目立たせる */
+    .filterGroup {
+      display: inline-flex; align-items: stretch; vertical-align: middle;
+      border: 1.5px solid var(--accent); border-radius: 8px; overflow: hidden;
+      box-shadow: 0 2px 6px rgba(201, 122, 30, 0.18); margin: 4px 10px 4px 0; background: var(--surface);
+    }
+    .filterLabel {
+      display: flex; align-items: center; padding: 0 12px; white-space: nowrap;
+      background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;
+    }
+    .filterSelect {
+      margin: 0; border: none; border-radius: 0; padding: 7px 12px;
+      font-size: 13.5px; font-weight: 700; background: var(--surface); color: var(--text-primary);
+    }
+    .filterSelect:focus { outline: 2px solid var(--accent-light); outline-offset: -2px; }
+
+    /* 体験会日で絞り込み：教室フィルタと同じ「濃いオレンジ枠＋左ラベル」の見た目に揃えつつ、
+       日付2つ・ショートカット・チェックボックス・クリアボタンをまとめて収める */
+    .dateFilterGroup {
+      display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
+      border: 1.5px solid var(--accent); border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(201, 122, 30, 0.18); margin: 4px 10px 4px 0;
+      background: var(--surface); padding: 6px 12px;
+    }
+    .dateFilterGroup .filterLabel {
+      display: inline-flex; align-items: center; padding: 0; margin-right: 2px;
+      background: none; color: var(--accent-text); font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .dateFilterGroup input[type=date] { margin: 0; padding: 5px 8px; font-size: 12.5px; }
+    .dateFilterTilde { color: var(--text-secondary); font-size: 12px; }
+    .dateShortcuts { display: inline-flex; gap: 4px; }
+    .dateShortcutBtn { padding: 5px 9px; font-size: 11.5px; margin: 0; }
+    .dateShortcutBtn.active { background: var(--accent-light); color: var(--accent-text); border-color: var(--border-strong); font-weight: 600; }
+    .dateFilterUnsetLabel {
+      display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px;
+      color: var(--text-secondary); white-space: nowrap; cursor: pointer;
+    }
+    .dateFilterUnsetLabel input { margin: 0; cursor: pointer; }
+    .dateFilterClearBtn { margin: 0; padding: 5px 10px; font-size: 11.5px; }
+
+    .resultCount { font-size: 12px; color: var(--text-secondary); margin: 8px 0 2px; }
+
+    .statCallouts { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+    .statCard {
+      border: 1px solid var(--border-strong); background: var(--accent-light); border-radius: 6px;
+      padding: 10px 16px; min-width: 180px;
+    }
+    .statCard .num { font-size: 22px; font-weight: bold; color: var(--accent-text); }
+    .statCard .label { font-size: 12px; color: var(--text-secondary); }
+
+    /* display:noneを既定にし、開く時だけJS側でstyle.displayを'flex'にする。
+       hidden属性は使わない（[hidden]のdisplay:noneより、作成者CSSのdisplay指定が
+       詳細度に関わらず優先されてしまい、hidden=trueにしても隠れない不具合があったため） */
+    .modalOverlay {
+      position: fixed; inset: 0; background: rgba(60,45,10,0.32);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modalBox {
+      background: var(--surface); border-radius: 10px; padding: 18px 20px; max-width: 92vw;
+      max-height: 90vh; overflow-y: auto; width: 520px;
+    }
+    .modalFieldRow {
+      display: flex; align-items: center; margin-bottom: 8px; gap: 8px;
+    }
+    .modalFieldRow label { width: 120px; flex-shrink: 0; font-size: 12px; color: var(--text-secondary); }
+    .modalFieldRow input[type=text], .modalFieldRow input[type=date], .modalFieldRow select {
+      flex: 1; padding: 6px 8px; font-size: 12.5px; background: #FEFCF6;
+    }
+    .modalFieldRow textarea { flex: 1; padding: 6px 8px; font-size: 12.5px; height: 70px; background: #FEFCF6; border: 1px solid var(--board-border); border-radius: 5px; font-family: inherit; }
+    .modalButtons { margin-top: 16px; text-align: right; }
+
+    /* モーダル上部の見出し行。×閉じるボタンはPCでは非表示（背景クリック・下部の閉じるボタンのままの見た目を維持）、
+       スマホ幅でのみ表示する（@media側で上書き） */
+    .modalHeaderRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .modalCloseBtn {
+      display: none;
+      background: none; border: none; color: var(--text-secondary); cursor: pointer;
+      line-height: 1; border-radius: 6px;
+    }
+    .modalCloseBtn:hover { color: var(--accent-text); background: var(--accent-light); }
+
+    /* KPIグラフを開くアイコンボタン（見出しの脇に添える） */
+    .kpiChartBtn {
+      display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 2px 9px;
+      border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface);
+      color: var(--accent-text); font-size: 10.5px; font-weight: 500; cursor: pointer; vertical-align: middle;
+    }
+    .kpiChartBtn:hover { background: var(--accent-light); border-color: var(--accent); }
+
+    /* KPIグラフモーダル */
+    .chartModalBox { width: 660px; }
+    .chartModalHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .chartModalHeader h3 { margin: 0; font-size: 15px; }
+    .chartModalCloseBtn { background: none; border: none; font-size: 16px; color: var(--text-secondary); cursor: pointer; padding: 2px 6px; }
+    .chartModalCloseBtn:hover { color: var(--accent-text); }
+    .chartModalToggle { display: none; gap: 6px; margin: 6px 0 4px; }
+    .chartModalToggle .btnSecondary.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-text); }
+    .chartCanvasWrap { position: relative; height: 360px; margin-top: 10px; }
+
+    .markOptions { display: flex; gap: 11px; flex-wrap: wrap; padding: 7px 9px; background: #FCF6E9; border: 1px solid var(--board-border); border-radius: 5px; }
+
+    /* 新規登録モーダル：自動入力／手動入力の切り替えタブ */
+    .modeToggle { display: flex; gap: 8px; margin-bottom: 12px; }
+    .modeToggleBtn {
+      flex: 1; padding: 9px; border: 1px solid var(--board-border); border-radius: 6px;
+      background: var(--surface); color: var(--text-secondary); cursor: pointer; font-size: 13px;
+    }
+    .modeToggleBtn.active { background: var(--accent-light); color: var(--accent-text); border-color: var(--border-strong); font-weight: 500; }
+    .markOption { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text-secondary); }
+
+    /* マスタ管理テーブルの行ドラッグ並び替え */
+    #masterTable .dragHandle { width: 24px; text-align: center; cursor: grab; color: var(--text-muted); }
+    #masterTable tbody tr.dragging { opacity: 0.4; }
+    #masterTable tbody tr { cursor: default; }
+
+    /* ==== スマホ幅（iPhone相当）向けレスポンシブ対応 ====
+       受付一覧表は列構成・固定列（sticky）を変更せず横スクロールのまま維持し、
+       それ以外のボタン・フォーム・ダッシュボード・モーダルを縦積み／タップしやすいサイズに調整する */
+    @media (max-width: 700px) {
+      body { margin: 12px; }
+
+      /* ヘッダー：ロゴとログイン中表示を同じ行に（ロゴ左・ログイン中を右端寄せ） */
+      .appBrand { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
+
+      /* エリアタブ：折り返さず横一列でスクロール（PC一覧表と同じ考え方）、高さ・余白をボタン間で統一 */
+      .areaTabs {
+        flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px; margin: 8px 0;
+      }
+      .areaTab { flex: 0 0 auto; white-space: nowrap; }
+
+      /* 再読み込み・選択した行のみ表示・ごみ箱へ移動：入る幅までは横並び、収まらなければ折り返す */
+      .toolbarButtonGroup { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
+      .toolbarButtonGroup button { margin: 0; }
+
+      /* ボタン・プルダウン・入力欄のタップ領域を拡大し、iOSでのフォーカス時自動ズームを防ぐため16px以上に */
+      select, button, input[type=date], input[type=text] {
+        padding: 11px 14px; font-size: 16px; min-height: 44px; box-sizing: border-box;
+      }
+      .iconBtn { min-width: 44px; min-height: 44px; font-size: 19px; }
+      .tabButton { padding: 12px 14px; min-height: 44px; box-sizing: border-box; }
+      .areaTab { padding: 10px 16px; min-height: 40px; box-sizing: border-box; }
+      .kpiChartBtn { padding: 8px 12px; font-size: 12px; min-height: 36px; box-sizing: border-box; }
+      .modeToggleBtn { min-height: 44px; box-sizing: border-box; }
+
+      /* チェックボックス類を大きめに（一覧表の列幅は変更しないため、セル内で視覚的に拡大） */
+      input[type=checkbox] { width: 20px; height: 20px; }
+      .rowCheck { width: 18px; height: 18px; }
+      .contactCheck, #edit-連絡済みチェック { width: 20px; height: 20px; }
+
+      /* 教室で絞り込みグループ：横幅いっぱいに広げて縦積みでも押しやすく */
+      .filterGroup { display: flex; width: 100%; margin: 4px 0 8px; }
+      .filterLabel { flex-shrink: 0; }
+      .filterSelect { flex: 1; min-width: 0; }
+
+      /* 体験会日で絞り込みグループ：横幅いっぱいに広げ、中身は折り返して縦積みでも押しやすく */
+      .dateFilterGroup { display: flex; width: 100%; margin: 4px 0 8px; box-sizing: border-box; }
+      .dateFilterGroup input[type=date] { flex: 1 1 auto; min-width: 0; }
+
+      /* 集計ダッシュボード：KPIカードを縦積みに、ツールバーは折り返し */
+      .dashboardToolbar { flex-wrap: wrap; row-gap: 8px; }
+      .statCallouts { flex-direction: column; }
+      .statCard { width: 100%; min-width: 0; box-sizing: border-box; }
+      .gradeGrid { gap: 8px; }
+      .gradeTile { min-width: 50px; flex: 1 1 calc(25% - 8px); }
+
+      /* モーダル（新規登録・編集・KPIグラフ）：画面幅に合わせて余白・レイアウトを調整 */
+      .modalBox { width: 94vw; max-width: 94vw; padding: 16px 14px; }
+      .modalFieldRow { flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 12px; }
+      .modalFieldRow label { width: auto; }
+      /* .modalFieldRow配下は専用の上書きルールがあり特異度が高いため、タップ領域拡大のためここで明示的に上書きする */
+      .modalFieldRow input[type=text], .modalFieldRow input[type=date],
+      .modalFieldRow select, .modalFieldRow textarea {
+        padding: 11px 12px; font-size: 16px; min-height: 44px; box-sizing: border-box;
+      }
+      .modalFieldRow textarea { min-height: 80px; }
+
+      /* レコード編集モーダル：×閉じるボタンを表示し、上部を画面上端に固定して常に見える状態を維持 */
+      .modalCloseBtn {
+        display: flex; align-items: center; justify-content: center;
+        min-width: 44px; min-height: 44px; font-size: 22px;
+      }
+      #editModalOverlay .modalHeaderRow {
+        position: sticky; top: -16px; /* modalBoxのpadding(16px)分を打ち消し、常に画面上端に固定表示する */
+        margin: -16px -14px 8px; padding: 10px 14px;
+        background: var(--surface); border-bottom: 1px solid var(--board-border); z-index: 5;
+      }
+      /* h3の既定マージンはPC幅では触れず維持するが、モバイルの固定ヘッダーはコンパクトにしたいためここでのみ詰める */
+      #editModalOverlay .modalHeaderRow h3 { margin: 0; font-size: 15px; }
+      /* フィールド間・ラベルと入力欄の余白を詰めてスクロール量を減らす（レコード編集モーダルのみ） */
+      #editModalOverlay .modalFieldRow { margin-bottom: 7px; gap: 2px; }
+      #editModalOverlay .modalFieldRow label { font-size: 11px; margin-bottom: 0; }
+
+      .chartModalBox { width: 94vw; }
+      .chartCanvasWrap { height: 260px; }
+      .chartModalToggle .btnSecondary { flex: 1; }
+
+      /* ホバーポップアップ：狭い画面でもはみ出さないよう幅を抑える */
+      .hoverPopup { max-width: 85vw; }
+
+      /* 受付一覧表：固定列を「チェック＋生徒名」の2列のみに絞り、受付日時・教室・区分はスクロール側に回す
+         （PC幅ではチェック〜生徒名までの固定列構成を維持。ここはモバイル幅限定の上書き） */
+      #recordsTable th.sticky-date, #recordsTable td.sticky-date,
+      #recordsTable th.sticky-school, #recordsTable td.sticky-school,
+      #recordsTable th.sticky-type, #recordsTable td.sticky-type {
+        position: static;
+      }
+      #recordsTable th.sticky-name, #recordsTable td.sticky-name {
+        left: 28px; /* チェック列（28px幅）の直後に来るよう再計算 */
+        box-shadow: 2px 0 2px -1px rgba(0,0,0,0.15);
+      }
+    }
+
+    /* ==== 起動時のオープニング演出 ====
+       ロゴのフェードインを1.3秒程度表示した後、フェードアウトしてメイン画面に切り替える。
+       body直下の最初の要素として配置し、JS実行前から純粋にCSS/HTMLだけで全画面を覆っておくことで
+       メイン画面がちらつかずに隠れた状態からスタートできるようにする */
+    .splashScreen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 1; transition: opacity 0.45s ease;
+    }
+    .splashScreen.splashHide { opacity: 0; pointer-events: none; }
+    .splashLogos { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .splashLogo { width: auto; opacity: 0; animation: splashLogoIn 0.6s ease forwards; }
+    .splashLogo-corp { height: 42px; animation-delay: 0.05s; }
+    .splashLogo-unit { height: 32px; animation-delay: 0.28s; }
+    @keyframes splashLogoIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .splashLogo { animation: none; opacity: 1; }
+    }
+
+/* 段階2-3b: Index.htmlの静的style=""属性（18箇所）をクラス化したもの */
+.textRight { text-align: right; }
+.isHidden { display: none; }
+.modalButtons.leftAlignTop8 { text-align: left; margin-top: 8px; }
+.modalButtons.leftAlignMb8 { text-align: left; margin: 0 0 8px; }
+.hintText { font-size: 11.5px; color: var(--text-secondary); }
+.hintText.inlineML8 { margin-left: 8px; }
+.hintText.blockMy4 { margin: 4px 0; }
+.hintText.mb10 { margin-bottom: 10px; }
+.readonlyNotice { font-size: 11.5px; color: var(--accent-text); background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: 5px; padding: 6px 10px; margin: 4px 0; }
+.modalFieldRow.alignStart { align-items: flex-start; }
+.pasteBoxHeight { height: 90px; }
+.fieldDivider { border: none; border-top: 1px solid var(--board-border); margin: 0 0 12px; }
+.timeSelect { flex: 0 0 80px; }
+.readonlyBg { background: #F1EFE6; }
