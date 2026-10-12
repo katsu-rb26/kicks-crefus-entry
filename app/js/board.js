@@ -475,18 +475,18 @@
         // 連絡済みチェックが入っていない行＝新着（未対応）は濃い黄色で全体マーキングする
         if (!r['連絡済みチェック']) tr.classList.add('newInquiry');
         tr.innerHTML =
-          '<td class="col-check sticky sticky-check"><input type="checkbox" class="rowCheck" data-no="' + no + '" data-action="stopPropagation"></td>' +
+          '<td class="col-check sticky sticky-check"><input type="checkbox" class="rowCheck" data-no="' + escapeAttr_(no) + '" data-action="stopPropagation"></td>' +
           '<td class="col-date sticky sticky-date">' + formatDate(r['受付日時']) + '</td>' +
           '<td class="col-school sticky sticky-school">' + escapeHtml_(r['教室名'] || '') + '</td>' +
           '<td class="col-type sticky sticky-type">' + typeBadge_(r['KicksCrefus']) + '</td>' +
-          '<td class="col-name sticky sticky-name" data-no="' + no + '">' + buildWrapCellHtml_(r['生徒名']) + '</td>' +
+          '<td class="col-name sticky sticky-name" data-no="' + escapeAttr_(no) + '">' + buildWrapCellHtml_(r['生徒名']) + '</td>' +
           '<td class="col-mark marks">' + escapeHtml_(r['マーク'] || '') + '</td>' +
           '<td class="col-kana">' + buildWrapCellHtml_(r['ふりがな']) + '</td>' +
           '<td class="col-grade">' + escapeHtml_(r['新学年'] || '') + '</td>' +
-          '<td class="col-tel" data-no="' + no + '">' + escapeHtml_(r['電話番号'] || '') + '</td>' +
+          '<td class="col-tel" data-no="' + escapeAttr_(no) + '">' + escapeHtml_(r['電話番号'] || '') + '</td>' +
           '<td class="col-media">' + escapeHtml_(r['媒体'] || '') + '</td>' +
           '<td class="col-status">' + (r['状況'] ? '<span class="status ' + statusClass_(r['状況']) + '">' + escapeHtml_(r['状況']) + '</span>' : '') + '</td>' +
-          '<td class="col-contact" data-action="stopPropagation"><input type="checkbox" class="contactCheck" data-no="' + no + '"' +
+          '<td class="col-contact" data-action="stopPropagation"><input type="checkbox" class="contactCheck" data-no="' + escapeAttr_(no) + '"' +
             (r['連絡済みチェック'] ? ' checked' : '') + ' data-change-action="updateContactCheck"></td>' +
           '<td class="col-date">' + escapeHtml_(toDateInputValue_(r['体験会日'])) + '</td>' +
           '<td class="col-time">' + escapeHtml_(r['時間'] || '') + '</td>' +
@@ -495,8 +495,8 @@
           '<td class="col-done">' + escapeHtml_(r['体験会実施状況'] || '') + '</td>' +
           '<td class="col-result">' + escapeHtml_(r['結果'] || '') + '</td>' +
           '<td class="col-course">' + escapeHtml_(r['コース'] || '') + '</td>' +
-          '<td class="col-note" data-no="' + no + '"><div class="noteClamp">' + escapeHtml_(r['備考'] || '') + '</div></td>' +
-          '<td class="col-body" data-no="' + no + '" data-action="stopPropagation"><button class="iconBtn" title="カーソルを合わせると元メール本文を表示">📄</button></td>';
+          '<td class="col-note" data-no="' + escapeAttr_(no) + '"><div class="noteClamp">' + escapeHtml_(r['備考'] || '') + '</div></td>' +
+          '<td class="col-body" data-no="' + escapeAttr_(no) + '" data-action="stopPropagation"><button class="iconBtn" title="カーソルを合わせると元メール本文を表示">📄</button></td>';
         tr.onclick = (function (n) { return function () { openEditModal(n); }; })(no);
         tbody.appendChild(tr);
       });
