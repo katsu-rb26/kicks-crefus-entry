@@ -87,6 +87,9 @@
           callGas(prop, args).then(function (result) {
             if (successHandler) successHandler(result, userObject);
           }).catch(function (err) {
+            // AUTH_REQUIREDはcallGas内でonSessionExpired()が既にログイン画面＋バナー表示を行っている。
+            // ここでさらにfailureHandler（alert等）を呼ぶとログイン画面の上にエラー表示が重なるため呼ばない
+            if (err && err.code === 'AUTH_REQUIRED') return;
             if (failureHandler) {
               failureHandler(err.message, userObject);
             } else {
