@@ -501,7 +501,7 @@
         // 連絡済みチェックが入っていない行＝新着（未対応）は濃い黄色で全体マーキングする
         if (!r['連絡済みチェック']) tr.classList.add('newInquiry');
         tr.innerHTML =
-          '<td class="col-check sticky sticky-check"><input type="checkbox" class="rowCheck" data-no="' + escapeAttr_(no) + '" data-action="stopPropagation"></td>' +
+          '<td class="col-check sticky sticky-check" data-action="stopPropagation"><label class="rowCheckTapArea"><input type="checkbox" class="rowCheck" data-no="' + escapeAttr_(no) + '"></label></td>' +
           '<td class="col-date sticky sticky-date">' + formatDate(r['受付日時']) + '</td>' +
           '<td class="col-school sticky sticky-school">' + escapeHtml_(r['教室名'] || '') + '</td>' +
           '<td class="col-type sticky sticky-type">' + typeBadge_(r['KicksCrefus']) + '</td>' +

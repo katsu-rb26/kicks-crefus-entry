@@ -567,6 +567,14 @@ button:disabled {
       .rowCheck { width: 18px; height: 18px; }
       .contactCheck, #edit-連絡済みチェック { width: 20px; height: 20px; }
 
+      /* 受付一覧表：選択チェックボックスの列のみ44px幅に拡大し、タップ領域（.rowCheckTapArea、44px四方）が
+         セルの外へはみ出さないようにする（paddingも0にして44px全体を使う）。他の列幅は変更しない */
+      #recordsTable .col-check { width: 44px; padding: 0; }
+      .rowCheckTapArea {
+        display: flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; cursor: pointer;
+      }
+
       /* 教室で絞り込みグループ：横幅いっぱいに広げて縦積みでも押しやすく */
       .filterGroup { display: flex; width: 100%; margin: 4px 0 8px; }
       .filterLabel { flex-shrink: 0; }
@@ -625,9 +633,12 @@ button:disabled {
         position: static;
       }
       #recordsTable th.sticky-name, #recordsTable td.sticky-name {
-        left: 28px; /* チェック列（28px幅）の直後に来るよう再計算 */
+        left: 44px; /* チェック列（44px幅に拡大済み）の直後に来るよう再計算 */
         box-shadow: 2px 0 2px -1px rgba(0,0,0,0.15);
       }
+      /* チェック列を28→44pxへ拡大した分（+16px）をテーブル全体の固定幅にも反映する
+         （table-layout:fixedのまま、他の列幅は一切変更しない） */
+      #recordsTable { width: 1650px; }
     }
 
     /* ==== 起動時のオープニング演出 ====
