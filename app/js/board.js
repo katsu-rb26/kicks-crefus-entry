@@ -28,6 +28,8 @@
     // 保留メール（営業の疑い）確認: 件数はダッシュボード・エリアタブ・一覧上のバナーが共有する
     let spamHoldCountsLoaded_ = false; // getSpamHoldCountsが一度も成功していない間は、カード・バッジ・バナーを一切出さない
     let spamHoldCounts_ = { total: 0, byArea: {} };
+    let spamHoldList_ = []; // 確認パネルを開いた時点のgetSpamHoldList結果（area列でクライアント側絞り込み）
+    let spamHoldQuestionFullCache_ = {}; // 保留ID -> ご質問欄全文（「本文を表示」の再取得を避けるため）
 
     function init(bootstrap) {
       CURRENT_USER_AREAS = bootstrap.userAreas || [];
@@ -187,11 +189,18 @@
         if (ev.target === this) closeKpiChartModal_();
       });
 
+      document.getElementById('spamHoldModalCloseXBtn').addEventListener('click', closeSpamHoldPanel_);
+      document.getElementById('spamHoldModalCloseBtn').addEventListener('click', closeSpamHoldPanel_);
+      document.getElementById('spamHoldModalOverlay').addEventListener('click', function (ev) {
+        if (ev.target === this) closeSpamHoldPanel_();
+      });
+
       document.addEventListener('keydown', function (ev) {
         if (ev.key !== 'Escape') return;
         if (isModalOpen_('registerModalOverlay')) closeRegisterModal();
         else if (isModalOpen_('editModalOverlay')) closeEditModal();
         else if (isModalOpen_('chartModalOverlay')) closeKpiChartModal_();
+        else if (isModalOpen_('spamHoldModalOverlay')) closeSpamHoldPanel_();
       });
     }
 
@@ -1658,6 +1667,202 @@
       refreshSpamHoldCounts_();
     }
 
+    // ==== 保留メール（営業の疑い）確認: 確認パネル（モーダル） ====
+
+    function spamHoldPanelAreaLabel_() {
+      return currentAreaFilter || '全エリア';
+    }
+
+    function visibleSpamHoldList_() {
+      if (!currentAreaFilter) return spamHoldList_;
+      return spamHoldList_.filter(function (item) { return item.area === currentAreaFilter; });
+    }
+
+    function openSpamHoldPanel_() {
+      showModal_('spamHoldModalOverlay');
+      loadSpamHoldPanelList_();
+    }
+
+    function closeSpamHoldPanel_() {
+      hideModal_('spamHoldModalOverlay');
+    }
+
+    function loadSpamHoldPanelList_() {
+      const container = document.getElementById('spamHoldRowsContainer');
+      container.innerHTML = '';
+      const loading = document.createElement('div');
+      loading.className = 'spamHoldEmpty';
+      loading.textContent = '読み込み中...';
+      container.appendChild(loading);
+
+      callGasAsync_('getSpamHoldList').then(function (list) {
+        spamHoldList_ = list || [];
+        renderSpamHoldPanelTitle_();
+        renderSpamHoldRows_();
+      }).catch(function (err) {
+        if (isAuthRequiredError_(err)) return;
+        container.innerHTML = '';
+        const p = document.createElement('div');
+        p.className = 'spamHoldEmpty';
+        p.textContent = '読み込みに失敗しました: ' + gasErrorText_(err);
+        container.appendChild(p);
+      });
+    }
+
+    function renderSpamHoldPanelTitle_() {
+      document.getElementById('spamHoldModalTitle').textContent =
+        '保留メールの確認（' + spamHoldPanelAreaLabel_() + ' ' + visibleSpamHoldList_().length + '件）';
+    }
+
+    function renderSpamHoldRows_() {
+      const container = document.getElementById('spamHoldRowsContainer');
+      container.innerHTML = '';
+      const list = visibleSpamHoldList_();
+      if (list.length === 0) {
+        const p = document.createElement('div');
+        p.className = 'spamHoldEmpty';
+        p.textContent = '保留中のメールはありません';
+        container.appendChild(p);
+        return;
+      }
+      list.forEach(function (item) { container.appendChild(buildSpamHoldRowEl_(item)); });
+    }
+
+    function buildSpamHoldRowEl_(item) {
+      const row = document.createElement('div');
+      row.className = 'spamHoldRow';
+      row.dataset.spamId = item.id;
+
+      const meta = document.createElement('div');
+      meta.className = 'spamHoldRowMeta';
+      meta.innerHTML =
+        '<span class="spamHoldMetaItem">' + escapeHtml_(formatDate(item.receivedAt)) + '</span>' +
+        '<span class="spamHoldMetaItem">' + escapeHtml_(item.school || '') + '</span>' +
+        '<span class="spamHoldMetaItem">' + typeBadge_(item.kubun) + '</span>' +
+        '<span class="spamHoldReason">理由: ' + escapeHtml_(spamHoldReasonText_(item.reason)) + '</span>';
+      row.appendChild(meta);
+
+      const preview = document.createElement('div');
+      preview.className = 'spamHoldPreview';
+      preview.textContent = item.questionPreview || '';
+      row.appendChild(preview);
+
+      const actions = document.createElement('div');
+      actions.className = 'spamHoldActions';
+      actions.innerHTML =
+        '<button type="button" class="btnPrimary" data-action="importSpamHoldRow_" data-arg="' + escapeAttr_(item.id) + '">問い合わせとして取り込む</button>' +
+        '<button type="button" class="btnSecondary" data-action="discardSpamHoldRow_" data-arg="' + escapeAttr_(item.id) + '">営業として破棄</button>' +
+        '<button type="button" class="btnSecondary" data-action="toggleSpamHoldBody_" data-arg="' + escapeAttr_(item.id) + '">本文を表示</button>';
+      row.appendChild(actions);
+
+      const body = document.createElement('div');
+      body.className = 'spamHoldBody isHidden';
+      row.appendChild(body);
+
+      return row;
+    }
+
+    function toggleSpamHoldBody_(buttonEl, id) {
+      const row = buttonEl.closest('.spamHoldRow');
+      if (!row) return;
+      const body = row.querySelector('.spamHoldBody');
+      if (!body) return;
+
+      if (!body.classList.contains('isHidden')) {
+        body.classList.add('isHidden');
+        return;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(spamHoldQuestionFullCache_, id)) {
+        body.textContent = spamHoldQuestionFullCache_[id];
+        body.classList.remove('isHidden');
+        return;
+      }
+
+      body.textContent = '読み込み中...';
+      body.classList.remove('isHidden');
+      callGasAsync_('getSpamHoldQuestionFull', [id]).then(function (res) {
+        if (!res || !res.success) {
+          body.textContent = spamHoldActionErrorText_(res && res.errorCode);
+          return;
+        }
+        spamHoldQuestionFullCache_[id] = res.question || '';
+        body.textContent = spamHoldQuestionFullCache_[id];
+      }).catch(function (err) {
+        if (isAuthRequiredError_(err)) return;
+        body.textContent = gasErrorText_(err);
+      });
+    }
+
+    function setSpamHoldRowBusy_(row, busy) {
+      row.querySelectorAll('button').forEach(function (btn) { btn.disabled = busy; });
+      let indicator = row.querySelector('.spamHoldBusyIndicator');
+      if (busy) {
+        if (!indicator) {
+          indicator = document.createElement('div');
+          indicator.className = 'spamHoldBusyIndicator';
+          row.appendChild(indicator);
+        }
+        indicator.textContent = '処理中...';
+      } else if (indicator) {
+        indicator.remove();
+      }
+    }
+
+    function handleSpamHoldActionError_(code) {
+      alert(spamHoldActionErrorText_(code));
+      if (code === 'ALREADY_PROCESSED') {
+        loadSpamHoldPanelList_();
+        refreshSpamHoldCounts_();
+      }
+    }
+
+    function importSpamHoldRow_(buttonEl, id) {
+      const row = buttonEl.closest('.spamHoldRow');
+      if (!row) return;
+      setSpamHoldRowBusy_(row, true);
+      callGasAsync_('importSpamHold', [id]).then(function (res) {
+        if (!res || !res.success) {
+          setSpamHoldRowBusy_(row, false);
+          handleSpamHoldActionError_(res && res.errorCode);
+          return;
+        }
+        spamHoldList_ = spamHoldList_.filter(function (it) { return it.id !== id; });
+        delete spamHoldQuestionFullCache_[id];
+        row.remove();
+        renderSpamHoldPanelTitle_();
+        refreshSpamHoldCounts_();
+        loadRecords(); // 取り込みの場合のみ、受付一覧を再読み込みする
+      }).catch(function (err) {
+        setSpamHoldRowBusy_(row, false);
+        if (isAuthRequiredError_(err)) return;
+        alert(gasErrorText_(err));
+      });
+    }
+
+    function discardSpamHoldRow_(buttonEl, id) {
+      if (!confirm('このメールを破棄します（Gmailのゴミ箱へ移動し、30日間は戻せます）。よろしいですか？')) return;
+      const row = buttonEl.closest('.spamHoldRow');
+      if (!row) return;
+      setSpamHoldRowBusy_(row, true);
+      callGasAsync_('discardSpamHold', [id]).then(function (res) {
+        if (!res || !res.success) {
+          setSpamHoldRowBusy_(row, false);
+          handleSpamHoldActionError_(res && res.errorCode);
+          return;
+        }
+        spamHoldList_ = spamHoldList_.filter(function (it) { return it.id !== id; });
+        delete spamHoldQuestionFullCache_[id];
+        row.remove();
+        renderSpamHoldPanelTitle_();
+        refreshSpamHoldCounts_();
+      }).catch(function (err) {
+        setSpamHoldRowBusy_(row, false);
+        if (isAuthRequiredError_(err)) return;
+        alert(gasErrorText_(err));
+      });
+    }
+
     // 段階2-3b: ログイン成功後にapp.js(起動オーケストレーター)からinit(bootstrap)を呼ぶ。
     // board.js自身はここでは自動実行しない。
     function startSplashSequence_() {
@@ -1695,7 +1900,11 @@ var CLICK_ACTIONS = {
   setRegisterMode_: function (el, arg) { setRegisterMode_(arg); },
   setRateCompareScope_: function (el, arg) { setRateCompareScope_(arg); },
   removeRow: function (el) { el.closest('tr').remove(); },
-  reloadListAndSpamHold_: function () { reloadListAndSpamHold_(); }
+  reloadListAndSpamHold_: function () { reloadListAndSpamHold_(); },
+  openSpamHoldPanel_: function () { openSpamHoldPanel_(); },
+  toggleSpamHoldBody_: function (el, arg) { toggleSpamHoldBody_(el, arg); },
+  importSpamHoldRow_: function (el, arg) { importSpamHoldRow_(el, arg); },
+  discardSpamHoldRow_: function (el, arg) { discardSpamHoldRow_(el, arg); }
 };
 
 var CHANGE_ACTIONS = {

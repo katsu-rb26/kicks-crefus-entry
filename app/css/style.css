@@ -444,6 +444,26 @@ button:disabled {
       font-size: 12.5px;
     }
 
+    .spamHoldModalBox { width: 640px; max-width: 94vw; max-height: 84vh; overflow-y: auto; }
+    .spamHoldRow {
+      border: 1px solid var(--board-border); border-radius: 6px; padding: 10px 12px;
+      margin-bottom: 10px; background: var(--surface);
+    }
+    .spamHoldRowMeta {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .spamHoldReason { color: var(--error); font-weight: 500; }
+    .spamHoldPreview { font-size: 12.5px; color: var(--text-primary); margin-bottom: 8px; word-break: break-word; }
+    .spamHoldActions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .spamHoldBody {
+      margin-top: 8px; padding: 8px; border: 1px solid var(--board-border); border-radius: 4px;
+      background: #FEFCF6; font-size: 12px; white-space: pre-wrap; word-break: break-word;
+      max-height: 200px; overflow-y: auto;
+    }
+    .spamHoldBusyIndicator { margin-top: 6px; font-size: 11.5px; color: var(--text-secondary); }
+    .spamHoldEmpty { font-size: 12.5px; color: var(--text-secondary); padding: 12px 0; text-align: center; }
+
     /* display:noneを既定にし、開く時だけJS側でstyle.displayを'flex'にする。
        hidden属性は使わない（[hidden]のdisplay:noneより、作成者CSSのdisplay指定が
        詳細度に関わらず優先されてしまい、hidden=trueにしても隠れない不具合があったため） */
