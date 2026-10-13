@@ -425,6 +425,25 @@ button:disabled {
     .statCard .num { font-size: 22px; font-weight: bold; color: var(--accent-text); }
     .statCard .label { font-size: 12px; color: var(--text-secondary); }
 
+    /* 保留メール（営業の疑い）確認: 集計カードのアラート色・エリアタブのバッジ・一覧上のバナー
+       既存のエラー表示（.kcb-error-banner等）と同じ赤系（--errorと#FDECEA）を再利用し、新しい色は増やさない */
+    .statCard.statCard-alert { background: #FDECEA; border-color: var(--error); }
+    .statCard.statCard-alert .num { color: var(--error); }
+    .statCard .spamHoldCardBtn { display: block; margin-top: 6px; }
+
+    .areaTabBadge {
+      display: inline-block; min-width: 16px; margin-left: 5px; padding: 0 5px;
+      border-radius: 999px; background: var(--error); color: #fff;
+      font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600;
+    }
+
+    .spamHoldBanner {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      margin: 8px 0; padding: 8px 12px; border-radius: 6px;
+      background: var(--accent-light); border: 1px solid var(--border-strong); color: var(--accent-text);
+      font-size: 12.5px;
+    }
+
     /* display:noneを既定にし、開く時だけJS側でstyle.displayを'flex'にする。
        hidden属性は使わない（[hidden]のdisplay:noneより、作成者CSSのdisplay指定が
        詳細度に関わらず優先されてしまい、hidden=trueにしても隠れない不具合があったため） */

@@ -25,6 +25,10 @@
     let rawTextCache = {}; // No をキーに、元メール本文をキャッシュ（一覧表示後にバックグラウンドで取得）
     let currentMasterColumns = [];
 
+    // 保留メール（営業の疑い）確認: 件数はダッシュボード・エリアタブ・一覧上のバナーが共有する
+    let spamHoldCountsLoaded_ = false; // getSpamHoldCountsが一度も成功していない間は、カード・バッジ・バナーを一切出さない
+    let spamHoldCounts_ = { total: 0, byArea: {} };
+
     function init(bootstrap) {
       CURRENT_USER_AREAS = bootstrap.userAreas || [];
       IS_MASTER_ADMIN = !!bootstrap.isMasterAdmin;
@@ -141,6 +145,7 @@
         })
       ]).then(function () {
         loadRecords();
+        refreshSpamHoldCounts_(); // 初回表示には含めず、一覧表示とは別に取得する（失敗してもボードの表示は止めない）
       }).catch(function (err) {
         console.error('[KcbBoard] 初期マスタ読み込み失敗:', err && err.code, err && err.message);
         showGlobalError_(window.KCB_MESSAGES.textFor(err && err.code));
@@ -206,6 +211,15 @@
         btn.type = 'button';
         btn.className = 'areaTab' + (area === currentAreaFilter ? ' active' : '');
         btn.textContent = area === '' ? '全エリア' : area;
+
+        const badgeCount = spamHoldCountForArea_(area);
+        if (badgeCount > 0) {
+          const badge = document.createElement('span');
+          badge.className = 'areaTabBadge';
+          badge.textContent = badgeCount;
+          btn.appendChild(badge);
+        }
+
         btn.onclick = function () {
           currentAreaFilter = area;
           renderAreaTabs_();
@@ -213,6 +227,8 @@
         };
         box.appendChild(btn);
       });
+
+      updateSpamHoldBanner_();
     }
 
     function populateMarkOptions_() {
@@ -233,6 +249,7 @@
         document.getElementById('tabPanel-' + t).classList.toggle('active', t === tab);
       });
       if (tab === 'dashboard' && !dashboardLoaded) loadDashboard();
+      if (tab === 'dashboard') refreshSpamHoldCounts_();
       if (tab === 'master' && !masterTabLoaded) initMasterTab_();
     }
 
@@ -1582,6 +1599,65 @@
       return !!(err && err.code === 'AUTH_REQUIRED');
     }
 
+    // ==== 保留メール（営業の疑い）確認: 件数表示（集計カード・エリアタブのバッジ・一覧上のバナー） ====
+    // 定期的な自動更新は行わず、初期ロード後の1回・ダッシュボードタブを開いた時・一覧の再読み込みボタン・
+    // 取り込み/破棄の成功後にのみ件数を取り直す（loop/setIntervalは使わない）。確認パネル本体は後続のコミットで追加する。
+
+    function refreshSpamHoldCounts_() {
+      return callGasAsync_('getSpamHoldCounts').then(function (counts) {
+        spamHoldCounts_ = (counts && typeof counts === 'object') ? counts : { total: 0, byArea: {} };
+        spamHoldCountsLoaded_ = true;
+        renderSpamHoldCard_();
+        renderAreaTabs_(); // バッジの再描画とあわせて、末尾でupdateSpamHoldBanner_()も呼ばれる
+      }).catch(function (err) {
+        if (isAuthRequiredError_(err)) return;
+        console.error('[KcbBoard] getSpamHoldCounts failed:', err && err.code, err && err.message);
+        spamHoldCountsLoaded_ = false; // 失敗時はカード・バッジ・バナーを一切出さない
+        renderSpamHoldCard_();
+        renderAreaTabs_();
+      });
+    }
+
+    function spamHoldCountForArea_(area) {
+      if (!spamHoldCountsLoaded_) return 0;
+      if (area === '') return spamHoldCounts_.total || 0;
+      return (spamHoldCounts_.byArea && spamHoldCounts_.byArea[area]) || 0;
+    }
+
+    function renderSpamHoldCard_() {
+      const card = document.getElementById('statCard-spamHold');
+      const btn = document.getElementById('spamHoldCardBtn');
+      if (!card || !btn) return;
+      if (!spamHoldCountsLoaded_) {
+        card.classList.add('isHidden');
+        return;
+      }
+      const total = spamHoldCounts_.total || 0;
+      document.getElementById('stat-spamHold').textContent = total;
+      card.classList.remove('isHidden');
+      card.classList.toggle('statCard-alert', total > 0);
+      btn.classList.toggle('isHidden', total === 0);
+    }
+
+    function updateSpamHoldBanner_() {
+      const banner = document.getElementById('spamHoldBanner');
+      if (!banner) return;
+      const count = spamHoldCountForArea_(currentAreaFilter);
+      if (!spamHoldCountsLoaded_ || count <= 0) {
+        banner.classList.add('isHidden');
+        return;
+      }
+      document.getElementById('spamHoldBannerText').textContent =
+        'このエリアに、保留中のメールが' + count + '件あります（営業の疑い。まだ一覧には入っていません）';
+      banner.classList.remove('isHidden');
+    }
+
+    // 一覧の「再読み込み」ボタン専用（一覧の再取得とあわせて保留件数も更新する）
+    function reloadListAndSpamHold_() {
+      loadRecords();
+      refreshSpamHoldCounts_();
+    }
+
     // 段階2-3b: ログイン成功後にapp.js(起動オーケストレーター)からinit(bootstrap)を呼ぶ。
     // board.js自身はここでは自動実行しない。
     function startSplashSequence_() {
@@ -1618,7 +1694,8 @@ var CLICK_ACTIONS = {
   saveMasterList: function () { saveMasterList(); },
   setRegisterMode_: function (el, arg) { setRegisterMode_(arg); },
   setRateCompareScope_: function (el, arg) { setRateCompareScope_(arg); },
-  removeRow: function (el) { el.closest('tr').remove(); }
+  removeRow: function (el) { el.closest('tr').remove(); },
+  reloadListAndSpamHold_: function () { reloadListAndSpamHold_(); }
 };
 
 var CHANGE_ACTIONS = {

@@ -88,9 +88,14 @@
         <button type="button" class="btnLink dateFilterClearBtn" data-action="clearDateFilter_">クリア</button>
       </div>
       <div class="toolbarButtonGroup">
-        <button class="btnSecondary" data-action="loadRecords">再読み込み</button>
+        <button class="btnSecondary" data-action="reloadListAndSpamHold_">再読み込み</button>
         <button type="button" id="onlySelectedBtn" class="btnSecondary" data-action="toggleOnlySelected_">選択した行のみ表示</button>
         <button class="btnSecondary btnWarn" data-action="moveSelectedToTrash">ごみ箱へ移動</button>
+      </div>
+
+      <div id="spamHoldBanner" class="spamHoldBanner isHidden">
+        <span id="spamHoldBannerText"></span>
+        <button type="button" class="btnSecondary" data-action="openSpamHoldPanel_">確認する</button>
       </div>
 
       <div id="resultCount" class="resultCount"></div>
@@ -153,6 +158,11 @@
       <div class="statCard">
         <div class="num" id="stat-uncontacted">-</div>
         <div class="label">連絡済みチェック未対応</div>
+      </div>
+      <div class="statCard isHidden" id="statCard-spamHold">
+        <div class="num" id="stat-spamHold">-</div>
+        <div class="label">保留メール（営業の疑い）</div>
+        <button type="button" class="btnSecondary spamHoldCardBtn isHidden" id="spamHoldCardBtn" data-action="openSpamHoldPanel_">確認する</button>
       </div>
     </div>
 
