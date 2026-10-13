@@ -12,7 +12,8 @@
     'getCourseList', 'getMarkOptions', 'getAreaList', 'getSchoolAreaMap', 'getRecords',
     'getRawTextsBulk', 'updateRecord', 'parseInquiryText', 'registerRecord', 'updateRecordFields',
     'deleteRecords', 'getDashboardData', 'saveEnrollmentInputs', 'getMasterListNames', 'getMasterListData',
-    'getTrashRecords', 'restoreFromTrash', 'permanentlyDeleteFromTrash', 'saveMasterListData', 'getBootstrap'
+    'getTrashRecords', 'restoreFromTrash', 'permanentlyDeleteFromTrash', 'saveMasterListData', 'getBootstrap',
+    'getSpamHoldList', 'getSpamHoldQuestionFull', 'getSpamHoldCounts', 'importSpamHold', 'discardSpamHold'
   ];
 
   function makeError(code, message) {

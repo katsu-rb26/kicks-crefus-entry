@@ -1549,6 +1549,39 @@
       return '<div class="' + cls + '">' + escapeHtml_(text) + '</div>';
     }
 
+    // ==== 保留メール（営業の疑い）確認: 文言定義 ====
+    // 理由コード（A/B）・操作失敗時のerrorCodeを利用者向けの日本語に変換する。
+    // 件数表示・確認パネル本体は後続のコミットで追加する。
+
+    const SPAM_HOLD_REASON_TEXT_ = {
+      A: 'URLあり・体験会ではない、または100文字以上',
+      B: '体験会ではない・200文字以上'
+    };
+
+    function spamHoldReasonText_(reason) {
+      return SPAM_HOLD_REASON_TEXT_[reason] || (reason || '');
+    }
+
+    // importSpamHold/discardSpamHoldが返すerrorCode→利用者向け文言（GAS側は例外を投げず{success:false,errorCode}で返す前提）
+    function spamHoldActionErrorText_(code) {
+      const MAP = {
+        ALREADY_PROCESSED: 'すでに処理されています。一覧を更新します',
+        MESSAGE_NOT_FOUND: '元のメールが見つかりません（Gmailで削除された可能性があります）',
+        NOT_FOUND: '対象が見つかりません。一覧を更新してください',
+        INVALID_ID: '対象が見つかりません。一覧を更新してください',
+        REGISTER_FAILED: '取り込みに失敗しました。もう一度お試しください',
+        TRASH_FAILED: '破棄に失敗しました。もう一度お試しください',
+        LOCK_TIMEOUT: 'ほかの操作が処理中です。少し待ってから、もう一度お試しください'
+      };
+      return MAP[code] || '処理に失敗しました';
+    }
+
+    // AUTH_REQUIREDはcallGasAsync_(=callGas)内部で既にログイン画面表示が行われているため、
+    // ここで改めてエラー文言を重ねて出さない（他のwithFailureHandler呼び出しと同じ方針）
+    function isAuthRequiredError_(err) {
+      return !!(err && err.code === 'AUTH_REQUIRED');
+    }
+
     // 段階2-3b: ログイン成功後にapp.js(起動オーケストレーター)からinit(bootstrap)を呼ぶ。
     // board.js自身はここでは自動実行しない。
     function startSplashSequence_() {
