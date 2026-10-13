@@ -429,7 +429,7 @@ button:disabled {
        既存のエラー表示（.kcb-error-banner等）と同じ赤系（--errorと#FDECEA）を再利用し、新しい色は増やさない */
     .statCard.statCard-alert { background: #FDECEA; border-color: var(--error); }
     .statCard.statCard-alert .num { color: var(--error); }
-    .statCard .spamHoldCardBtn { display: block; margin-top: 6px; }
+    .spamHoldCardBtn { display: block; margin-top: 6px; }
 
     .areaTabBadge {
       display: inline-block; min-width: 16px; margin-left: 5px; padding: 0 5px;
