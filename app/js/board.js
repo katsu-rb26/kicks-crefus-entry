@@ -676,6 +676,7 @@
     }
 
     function closeRegisterModal() {
+      if (isScopeBusy_('registerModal')) return; // 保存・解析が処理中の間は、閉じる操作（×/背景クリック/Esc含む）を無視する
       hideModal_('registerModalOverlay');
     }
 
@@ -785,6 +786,7 @@
     }
 
     function closeEditModal() {
+      if (isScopeBusy_('editModal')) return; // 保存が処理中の間は、閉じる操作（×/背景クリック/Esc含む）を無視する
       hideModal_('editModalOverlay');
     }
 
@@ -1420,6 +1422,7 @@
     }
 
     function showListView_() {
+      if (isScopeBusy_('trashSection')) return; // 復元・完全削除が処理中の間は、一覧へ戻る操作を無視する
       document.getElementById('trashSection').style.display = 'none';
       document.getElementById('listSection').style.display = 'block';
       document.getElementById('trashViewBtn').style.display = '';
