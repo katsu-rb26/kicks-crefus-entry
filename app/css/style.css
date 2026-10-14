@@ -711,6 +711,7 @@ button:disabled {
 .pasteBoxHeight { height: 90px; }
 .fieldDivider { border: none; border-top: 1px solid var(--board-border); margin: 0 0 12px; }
 .timeSelect { flex: 0 0 80px; }
+.registerHopeHint { font-size: 11.5px; color: #9A8F78; margin: -4px 0 6px; }
 .readonlyBg { background: #F1EFE6; }
 
 /* ==== 書き込み系ボタンの「処理中」表示 ==== */

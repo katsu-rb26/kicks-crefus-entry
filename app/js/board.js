@@ -705,6 +705,7 @@
       });
       document.getElementById('register-時間時').value = '';
       document.getElementById('register-時間分').value = '';
+      setRegisterHopeHint_('', '');
       // 受付日時は、モーダルを開いた時点の現在日時を初期値にする（手動で変更可能）
       document.getElementById('register-受付日').value = nowLocalDatetimeValue_();
       setRegisterMode_('auto');
@@ -722,6 +723,13 @@
       return [document.getElementById('registerParseBtn'), document.getElementById('registerSaveBtn')];
     }
 
+    function setRegisterHopeHint_(hopeDate, hopeTime) {
+      const el = document.getElementById('register-希望日時表示');
+      const parts = [hopeDateText_(hopeDate), hopeTimeText_(hopeTime)].filter(Boolean);
+      el.textContent = parts.length ? 'メールの希望日程: ' + parts.join(' ') : '';
+      el.classList.toggle('isHidden', !parts.length);
+    }
+
     function parseRegisterForm_() {
       const text = document.getElementById('register-pasteBox').value;
       if (!text.trim()) { alert('メール本文を貼り付けてください'); return; }
@@ -736,13 +744,14 @@
           document.getElementById('register-電話番号').value = parsed['tel'] || '';
           document.getElementById('register-メールアドレス').value = parsed['mail'] || '';
           document.getElementById('register-媒体').value = parsed['media'] || '';
-          document.getElementById('register-体験会日').value = parsed['hopeDate'] || '';
+          // 体験会日・時間は担当者が連絡して確定した日を手入力する欄のため、下書きは入れない。
+          // 解析できた希望日・時間は読み取り専用の1行で参考表示するだけ（保存時はGAS側が希望日程原文から再計算する）
+          document.getElementById('register-体験会日').value = '';
+          document.getElementById('register-時間時').value = '';
+          document.getElementById('register-時間分').value = '';
+          setRegisterHopeHint_(parsed['hopeDate'], parsed['hopeTime']);
           document.getElementById('register-希望日程参考').value = parsed['hopeSchedule'] || '';
           document.getElementById('register-備考').value = parsed['note'] || '';
-
-          const timeParts = (parsed['hopeTime'] || '').split(':');
-          document.getElementById('register-時間時').value = timeParts[0] || '';
-          document.getElementById('register-時間分').value = timeParts[1] || '';
 
           // 解析結果が入った状態で、ここで初めて入力項目セクションを表示する
           showRegisterFieldsSection_(true);
