@@ -71,19 +71,41 @@ body.kcb-visible {
   color: var(--error);
 }
 
+/* モーダル(z-index:100)より手前、画面上端に固定。スタンドアロン起動時に
+   iPhoneのステータスバーへ被らないよう、上側にsafe-area分の余白を足す */
 .kcb-error-banner {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   padding: 10px 16px;
-  text-align: center;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   font-size: 13px;
+  line-height: 1.5;
   color: var(--error);
   background: #FDECEA;
   border-bottom: 1px solid var(--error);
 }
+.kcb-error-banner-text {
+  flex: 1;
+  text-align: center;
+  word-break: break-word;
+}
+.kcb-error-banner-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--error);
+  cursor: pointer;
+}
+.kcb-error-banner-close:hover { opacity: 0.7; }
 
 .kcb-info {
   display: grid;

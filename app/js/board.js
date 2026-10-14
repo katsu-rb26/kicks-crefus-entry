@@ -82,14 +82,13 @@
       return window.KCB_MESSAGES.textFor();
     }
 
+    // 一定時間(5秒)で自動的に消える表示。実体はjs/banner.js(window.KcbBanner)に一元化している
     function showGlobalError_(text) {
-      const el = document.getElementById('globalErrorBanner');
-      if (el) { el.textContent = text; el.hidden = false; }
+      if (window.KcbBanner) window.KcbBanner.showAutoDismiss(text);
     }
 
     function hideGlobalError_() {
-      const el = document.getElementById('globalErrorBanner');
-      if (el) el.hidden = true;
+      if (window.KcbBanner) window.KcbBanner.hide();
     }
 
     // ==== 書き込み系ボタンの「処理中」表示（共通） ====

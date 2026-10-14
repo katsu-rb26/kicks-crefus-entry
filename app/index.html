@@ -15,7 +15,10 @@
 </head>
 <body>
 
-  <div id="globalErrorBanner" class="kcb-error-banner" hidden></div>
+  <div id="globalErrorBanner" class="kcb-error-banner isHidden" role="alert">
+    <span id="globalErrorBannerText" class="kcb-error-banner-text"></span>
+    <button type="button" id="globalErrorBannerCloseBtn" class="kcb-error-banner-close" aria-label="閉じる">✕</button>
+  </div>
 
   <div id="loginOverlay" class="kcb-overlay" hidden>
     <div class="kcb-card">
@@ -440,6 +443,7 @@
   <script src="vendor/chart.umd.min.js" defer></script>
   <script src="js/config.js?v=20261015b" defer></script>
   <script src="js/messages.js?v=20261015b" defer></script>
+  <script src="js/banner.js?v=20261015b" defer></script>
   <script src="js/gas-shim.js?v=20261015b" defer></script>
   <script src="js/auth.js?v=20261015b" defer></script>
   <script src="js/board.js?v=20261015b" defer></script>

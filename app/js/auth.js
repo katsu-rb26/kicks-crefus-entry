@@ -80,14 +80,13 @@
     el.hidden = true;
   }
 
+  // ログイン期限切れ等、ユーザーが再ログインするまで残したい表示のため、自動では消えないバナーを使う
   function showBanner(text) {
-    var el = document.getElementById('globalErrorBanner');
-    el.textContent = text;
-    el.hidden = false;
+    if (window.KcbBanner) window.KcbBanner.showPersistent(text);
   }
 
   function hideBanner() {
-    document.getElementById('globalErrorBanner').hidden = true;
+    if (window.KcbBanner) window.KcbBanner.hide();
   }
 
   function showMainScreen(bootstrap, expiresAt) {
