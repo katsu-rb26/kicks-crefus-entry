@@ -716,6 +716,11 @@
       if (isScopeBusy_('registerModal')) return; // 保存・解析が処理中の間は、閉じる操作（×/背景クリック/Esc含む）を無視する
       hideModal_('registerModalOverlay');
     }
+    // 登録成功時など、プログラムから閉じる場合用。処理中(busy)の判定を通さず確実に閉じる
+    // （イベントリスナーからは closeRegisterModal を使う。引数にイベントが渡るためforce引数方式にしていない）
+    function forceCloseRegisterModal_() {
+      hideModal_('registerModalOverlay');
+    }
 
     // 「解析」ボタン：貼り付けたメール本文をparseInquiryText()に通し、結果を各フィールドに
     // 自動入力する（この時点ではまだ受付データへの保存はしない。登録前に内容を確認・修正できる）
@@ -789,7 +794,7 @@
 
       withBusy_('registerModal', registerModalScopeButtons_(), document.getElementById('registerSaveBtn'), '保存中…', function () {
         return callGasAsync_('registerRecord', [record, receivedAtStr || null]).then(function () {
-          closeRegisterModal();
+          forceCloseRegisterModal_();
           loadRecords();
         }).catch(function (e) {
           if (isAuthRequiredError_(e)) return;
@@ -834,6 +839,10 @@
       if (isScopeBusy_('editModal')) return; // 保存が処理中の間は、閉じる操作（×/背景クリック/Esc含む）を無視する
       hideModal_('editModalOverlay');
     }
+    // 保存成功時など、プログラムから閉じる場合用（busy判定を通さない）
+    function forceCloseEditModal_() {
+      hideModal_('editModalOverlay');
+    }
 
     function saveEditModal() {
       const no = document.getElementById('editModalOverlay').dataset.no;
@@ -864,7 +873,7 @@
 
       withBusy_('editModal', [document.getElementById('editModalSaveBtn')], document.getElementById('editModalSaveBtn'), '保存中…', function () {
         return callGasAsync_('updateRecordFields', [no, fields]).then(function () {
-          closeEditModal();
+          forceCloseEditModal_();
           loadRecords();
         }).catch(function (e) {
           if (isAuthRequiredError_(e)) return;
