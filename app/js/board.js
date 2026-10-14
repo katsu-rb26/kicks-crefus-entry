@@ -596,7 +596,8 @@
           '<td class="col-result">' + escapeHtml_(r['結果'] || '') + '</td>' +
           '<td class="col-course">' + escapeHtml_(r['コース'] || '') + '</td>' +
           '<td class="col-note" data-no="' + escapeAttr_(no) + '"><div class="noteClamp">' + escapeHtml_(r['備考'] || '') + '</div></td>' +
-          '<td class="col-body" data-no="' + escapeAttr_(no) + '" data-action="stopPropagation"><button class="iconBtn" title="カーソルを合わせると元メール本文を表示">📄</button></td>';
+          '<td class="col-body" data-no="' + escapeAttr_(no) + '" data-action="stopPropagation"><button class="iconBtn" title="カーソルを合わせると元メール本文を表示">📄</button></td>' +
+          '<td class="col-memo" data-no="' + escapeAttr_(no) + '"><div class="memoClamp">' + escapeHtml_(r['メモ'] || '') + '</div></td>';
         tr.onclick = (function (n) { return function () { openEditModal(n); }; })(no);
         tbody.appendChild(tr);
       });
@@ -869,8 +870,9 @@
         const nameTd = ev.target.closest('.col-name');
         const noteTd = ev.target.closest('.col-note');
         const bodyTd = ev.target.closest('.col-body');
+        const memoTd = ev.target.closest('.col-memo');
         const telTd = ev.target.closest('.col-tel');
-        const triggerTd = nameTd || noteTd || bodyTd || telTd;
+        const triggerTd = nameTd || noteTd || bodyTd || memoTd || telTd;
         if (!triggerTd) return;
         cancelHoverHide_();
         if (triggerTd === currentHoverTriggerEl) return; // 同じトリガー上に留まっている間は内容を維持（上書きしない）
@@ -878,10 +880,11 @@
         if (nameTd) showNamePopup_(nameTd);
         else if (noteTd) showNotePopup_(noteTd);
         else if (bodyTd) showBodyPopup_(bodyTd);
+        else if (memoTd) showMemoPopup_(memoTd);
         else if (telTd) showTelPopup_(telTd);
       });
       table.addEventListener('mouseout', function (ev) {
-        if (ev.target.closest('.col-name, .col-note, .col-body, .col-tel')) scheduleHoverHide_();
+        if (ev.target.closest('.col-name, .col-note, .col-body, .col-memo, .col-tel')) scheduleHoverHide_();
       });
 
       // ポップアップ自体にカーソルが乗っている間は閉じない。離れたら同じ遅延で閉じる
@@ -897,8 +900,9 @@
         const nameTd = ev.target.closest('.col-name');
         const noteTd = ev.target.closest('.col-note');
         const bodyTd = ev.target.closest('.col-body');
+        const memoTd = ev.target.closest('.col-memo');
         const telTd = ev.target.closest('.col-tel');
-        const triggerTd = nameTd || noteTd || bodyTd || telTd;
+        const triggerTd = nameTd || noteTd || bodyTd || memoTd || telTd;
         if (!triggerTd) return;
         ev.stopPropagation();
 
@@ -910,6 +914,7 @@
         if (nameTd) showNamePopup_(nameTd);
         else if (noteTd) showNotePopup_(noteTd);
         else if (bodyTd) showBodyPopup_(bodyTd);
+        else if (memoTd) showMemoPopup_(memoTd);
         else if (telTd) showTelPopup_(telTd);
       }, true);
 
@@ -942,6 +947,14 @@
       const r = recordCache[td.dataset.no];
       if (!r) return;
       const html = '<h5>備考（全文）</h5><p>' + escapeHtml_(r['備考'] || '（備考なし）') + '</p>';
+      showPopupAt_(td, html);
+    }
+
+    // メモが空のセルはポップアップを出さない（備考と異なり「メモなし」表示はしない）
+    function showMemoPopup_(td) {
+      const r = recordCache[td.dataset.no];
+      if (!r || !r['メモ']) { hidePopup_(); return; }
+      const html = '<h5>メモ（全文）</h5><p>' + escapeHtml_(r['メモ']) + '</p>';
       showPopupAt_(td, html);
     }
 

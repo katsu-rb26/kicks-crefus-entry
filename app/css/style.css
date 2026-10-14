@@ -184,7 +184,7 @@ button:disabled {
     /* 一覧はtable-layout:fixedにして、内容量に関わらずCSSで指定した列幅を厳密に固定する
        （autoレイアウトだと内容の幅によって列が広がり、スティッキー列のズレの原因になる）。
        widthは全列の合計と完全一致させ、100%指定による余白分の比例拡大も起きないようにする */
-    #recordsTable { table-layout: fixed; width: 1634px; }
+    #recordsTable { table-layout: fixed; width: 1884px; }
     th { background: #FCF6E9; color: var(--text-secondary); font-weight: 500; font-size: 10.5px; }
     tr.totalRow td { font-weight: bold; background: #F1EFE6; }
     select, button, input[type=date], input[type=text] {
@@ -265,6 +265,7 @@ button:disabled {
     #recordsTable .col-contact { width: 52px; text-align: center; }
     #recordsTable .col-note    { width: 250px; white-space: normal; }
     #recordsTable .col-body    { width: 36px; text-align: center; }
+    #recordsTable .col-memo    { width: 250px; }
 
     /* 行の高さは内容量に関わらず52pxで統一し、縦中央揃えにする */
     #recordsTable tbody tr { height: 52px; }
@@ -322,6 +323,11 @@ button:disabled {
     .noteClamp {
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
       overflow: hidden; white-space: normal; line-height: 1.3em; max-height: 2.7em; cursor: default;
+    }
+
+    /* メモは1行・先頭20文字程度で省略表示（はみ出た分は…で省略） */
+    .memoClamp {
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: default;
     }
 
     /* ふりがな・生徒名：全角8文字以内は1行通常サイズ、9文字以上は2行折り返し＋縮小表示（省略しない） */
@@ -660,7 +666,7 @@ button:disabled {
       }
       /* チェック列を28→44pxへ拡大した分（+16px）をテーブル全体の固定幅にも反映する
          （table-layout:fixedのまま、他の列幅は一切変更しない） */
-      #recordsTable { width: 1650px; }
+      #recordsTable { width: 1900px; }
     }
 
     /* ==== 起動時のオープニング演出 ====
