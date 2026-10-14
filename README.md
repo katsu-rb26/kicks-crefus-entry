@@ -10,4 +10,8 @@ Kicks/crefus 体験会受付管理システムの画面（`app/` 配下）。Git
 scripts/bump-version.sh
 ```
 
-引数なしで実行すると、`app/index.html` 内のバージョンを今日の日付＋連番（同日中は a→b→c…、日付が変われば新しい日付+aから）に書き換える。vendor配下（バージョン固定のライブラリ）、`manifest.json`、アイコンには付けない。
+引数なしで実行すると、`app/index.html` 内のバージョンを今日の日付＋連番（同日中は a→b→c…、日付が変われば新しい日付+aから）に書き換える。vendor配下（バージョン固定のライブラリ）には付けない。
+
+## アイコンの更新
+
+アイコン画像（`app/assets/icons/`）を差し替えるときは、`app/index.html` のアイコン系 `<link>` の `href` と、`app/manifest.json` の `icons[].src` の両方に、CSS/JSとは別の日付+連番（例: `?v=20261015a`）を手動で付け直す（`scripts/bump-version.sh` はアイコンを更新しない）。
