@@ -2053,7 +2053,19 @@
       }, 1300);
     }
 
-    window.KcbBoard = { init: init };
+    // ログアウト・セッション期限切れの際にauth.jsから呼ぶ。画面側が保持している受付データ
+    // （全件キャッシュ・行キャッシュ・元メール本文キャッシュ・表の描画内容）を破棄し、
+    // 同じ端末で別の担当者がログインしたときに前の担当者の受付データが残らないようにする
+    function clearCachedRecords_() {
+      allRecordsCache_ = null;
+      allRecordsFetchedAt_ = 0;
+      recordCache = {};
+      rawTextCache = {};
+      const tbody = document.querySelector('#recordsTable tbody');
+      if (tbody) tbody.innerHTML = '';
+    }
+
+    window.KcbBoard = { init: init, clearCachedRecords_: clearCachedRecords_ };
 
 
 // ==== 段階2-3b: インラインイベントハンドラ(onclick/onchange)の委譲先 ====

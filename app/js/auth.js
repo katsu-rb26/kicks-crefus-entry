@@ -108,6 +108,7 @@
     hideMainScreen();
     showLoginOverlay();
     showBanner(window.KCB_MESSAGES.textFor('AUTH_REQUIRED'));
+    if (window.KcbBoard && window.KcbBoard.clearCachedRecords_) window.KcbBoard.clearCachedRecords_();
   }
 
   // ==== ログイン後のブートストラップ取得 ====
@@ -178,6 +179,7 @@
 
     hideMainScreen();
     showLoginOverlay();
+    if (window.KcbBoard && window.KcbBoard.clearCachedRecords_) window.KcbBoard.clearCachedRecords_();
 
     if (stored && stored.sessionToken) {
       window.KcbGas.postToGas('logout', { sessionToken: stored.sessionToken }).catch(function () {
