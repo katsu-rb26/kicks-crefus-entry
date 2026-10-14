@@ -33,6 +33,25 @@ body.kcb-visible {
   display: none !important;
 }
 
+/* ブランド書体 Zen Maru Gothic（サブセット。ヘッダーのタイトル・年度とログイン画面のタイトルのみで使用） */
+@font-face {
+  font-family: "Zen Maru Gothic";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("../assets/fonts/zen-maru-gothic-500.v1.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Zen Maru Gothic";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("../assets/fonts/zen-maru-gothic-700.v1.woff2") format("woff2");
+}
+:root {
+  --font-brand: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+}
+
 .kcb-overlay {
   position: fixed;
   inset: 0;
@@ -55,6 +74,8 @@ body.kcb-visible {
 }
 
 .kcb-card h1 {
+  font-family: var(--font-brand);
+  font-weight: 700;
   font-size: 18px;
   margin: 0 0 20px;
   color: var(--accent-text);
@@ -212,10 +233,12 @@ button:disabled {
       height: 22px; width: auto; align-self: center;
     }
     .appTitleMain {
-      font-size: 19px; font-weight: 500; letter-spacing: 1.5px;
+      font-family: var(--font-brand);
+      font-size: 19px; font-weight: 700; letter-spacing: 1.5px;
       color: var(--text-primary);
     }
     .appTitleYear {
+      font-family: var(--font-brand);
       font-size: 12.5px; font-weight: 500; letter-spacing: 0.5px;
       color: var(--text-muted);
     }
