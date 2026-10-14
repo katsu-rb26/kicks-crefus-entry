@@ -599,21 +599,27 @@
     }
 
     function updateContactCheck(el) {
+      if (el.disabled) return; // 保存中の行は再クリックを受け付けない（二重実行防止）
       const no = el.dataset.no;
       const checked = el.checked;
       const tr = el.closest('tr');
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function () {
-          if (recordCache[no]) recordCache[no]['連絡済みチェック'] = checked;
-          // 連絡済みになった時点で新着マーキング（濃い黄色）を即座に解除する。
-          // チェックを外した場合は逆に新着扱いへ戻す
-          if (tr) tr.classList.toggle('newInquiry', !checked);
-        })
-        .withFailureHandler(function (e) {
-          alert('更新でエラーが発生しました: ' + gasErrorText_(e));
-          el.checked = !checked; // 失敗時は元に戻す
-        })
-        .updateRecord(no, '連絡済みチェック', checked);
+
+      el.disabled = true; // 同じ行のみ操作不可にする（他の行は引き続き操作できる）
+      const badge = showContactCheckBusy_(el);
+
+      callGasAsync_('updateRecord', [no, '連絡済みチェック', checked]).then(function () {
+        if (recordCache[no]) recordCache[no]['連絡済みチェック'] = checked;
+        // 連絡済みになった時点で新着マーキング（濃い黄色）を即座に解除する。
+        // チェックを外した場合は逆に新着扱いへ戻す
+        if (tr) tr.classList.toggle('newInquiry', !checked);
+      }).catch(function (e) {
+        el.checked = !checked; // 失敗時は元に戻す
+        if (isAuthRequiredError_(e)) return; // ログイン画面側で既に案内済みのため重ねて出さない
+        showGlobalError_(gasErrorText_(e));
+      }).finally(function () {
+        el.disabled = false;
+        hideContactCheckBusy_(badge);
+      });
     }
 
     // ==== 新規登録モーダル ====
