@@ -92,6 +92,67 @@
       if (el) el.hidden = true;
     }
 
+    // ==== 書き込み系ボタンの「処理中」表示（共通） ====
+    // 範囲(scopeKey)ごとに実行中フラグを持ち、同じ範囲内のボタンをまとめて押せなくする。
+    // 二重実行はdisabled属性だけでなくこのフラグでも防ぐ（Enterキー等での連打対策）。
+    const busyScopes_ = {}; // scopeKey -> boolean
+
+    function isScopeBusy_(scopeKey) {
+      return !!busyScopes_[scopeKey];
+    }
+
+    // scopeKey: 同じ範囲の全ボタンをまとめて押せなくする単位の識別子
+    // scopeButtons: その範囲内で、処理中は押せなくするボタン要素の配列（nullは無視）
+    // triggerBtn: 実際に押されたボタン（スピナー＋文言に変える対象）。nullなら文言変更なし
+    // busyText: 処理中に表示する文言（例: '保存中…'）
+    // taskFn: サーバー呼び出しを含むPromiseを返す関数
+    // 戻り値: taskFn()のPromise（既にscopeKeyが処理中の場合は何もせずresolve済みPromiseを返す）
+    function withBusy_(scopeKey, scopeButtons, triggerBtn, busyText, taskFn) {
+      if (isScopeBusy_(scopeKey)) return Promise.resolve();
+      busyScopes_[scopeKey] = true;
+
+      const originalText = triggerBtn ? triggerBtn.textContent : null;
+      scopeButtons.forEach(function (btn) { if (btn) btn.disabled = true; });
+      if (triggerBtn) {
+        triggerBtn.classList.add('isBusy');
+        triggerBtn.textContent = '';
+        const spinner = document.createElement('span');
+        spinner.className = 'kcbSpinner';
+        triggerBtn.appendChild(spinner);
+        triggerBtn.appendChild(document.createTextNode(busyText));
+      }
+
+      return taskFn().finally(function () {
+        busyScopes_[scopeKey] = false;
+        scopeButtons.forEach(function (btn) { if (btn) btn.disabled = false; });
+        if (triggerBtn) {
+          triggerBtn.classList.remove('isBusy');
+          triggerBtn.textContent = originalText;
+        }
+      });
+    }
+
+    // 連絡済みチェック用：チェックボックスの右側に、スピナー付きの小さな「保存中」バッジを表示する。
+    // 行ごとに独立した要素をposition:fixedでbodyへ追加する（table側のoverflow:hiddenで隠れないようにするため）
+    function showContactCheckBusy_(checkboxEl) {
+      const badge = document.createElement('div');
+      badge.className = 'contactCheckBusyBadge';
+      const spinner = document.createElement('span');
+      spinner.className = 'kcbSpinner';
+      badge.appendChild(spinner);
+      badge.appendChild(document.createTextNode('保存中'));
+      document.body.appendChild(badge);
+
+      const rect = checkboxEl.getBoundingClientRect();
+      badge.style.left = (rect.right + 4) + 'px';
+      badge.style.top = (rect.top - 4) + 'px';
+      return badge;
+    }
+
+    function hideContactCheckBusy_(badge) {
+      if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
+    }
+
     // 媒体・担当者・状況・結果・コース・マーク・エリア一覧・教室エリア対応の選択肢（マスタ系9本）を
     // 並列取得する。従来はmastersLoadedCountのカウンタで「8本そろったら一覧を読む」としていたが、
     // Promise.allにまとめて置き換える。

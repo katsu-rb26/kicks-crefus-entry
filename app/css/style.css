@@ -679,3 +679,63 @@ button:disabled {
 .fieldDivider { border: none; border-top: 1px solid var(--board-border); margin: 0 0 12px; }
 .timeSelect { flex: 0 0 80px; }
 .readonlyBg { background: #F1EFE6; }
+
+/* ==== 書き込み系ボタンの「処理中」表示 ==== */
+.kcbSpinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: kcbSpin 0.7s linear infinite;
+}
+@keyframes kcbSpin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kcbSpinner { animation: none; }
+}
+
+/* 押された本人のボタンだけ、disabledの淡色化に加えて背景色も変えて目立たせる */
+button.isBusy {
+  background: #E7E2D4;
+  border-color: #C9C2AC;
+  color: var(--text-secondary);
+}
+
+/* ボタンの文言が「処理中…」等に変わっても、周りのレイアウトが動かないよう、
+   元の文言の幅を下回らない最小幅をボタンごとに確保する */
+.kcbBusyMinW-save { min-width: 6.5em; }
+.kcbBusyMinW-parse { min-width: 11em; }
+.kcbBusyMinW-reload { min-width: 7.5em; }
+.kcbBusyMinW-onlySelected { min-width: 10.5em; }
+.kcbBusyMinW-trash { min-width: 8.5em; }
+.kcbBusyMinW-trashView { min-width: 8.5em; }
+.kcbBusyMinW-restore { min-width: 6.5em; }
+.kcbBusyMinW-delete { min-width: 8.5em; }
+.kcbBusyMinW-masterReload { min-width: 7.5em; }
+.kcbBusyMinW-masterAdd { min-width: 7em; }
+.kcbBusyMinW-masterSave { min-width: 6.5em; }
+
+/* 連絡済みチェック：保存中はチェックボックスの横に小さく表示する（テーブルセルのoverflow:hiddenの
+   影響を受けないよう、position:fixedでbody直下に浮かせる） */
+.contactCheckBusyBadge {
+  position: fixed;
+  z-index: 310;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--board-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  box-shadow: 0 2px 6px rgba(90, 70, 20, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.contactCheckBusyBadge .kcbSpinner { margin-right: 0; }
