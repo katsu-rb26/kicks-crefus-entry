@@ -184,7 +184,7 @@ button:disabled {
     /* 一覧はtable-layout:fixedにして、内容量に関わらずCSSで指定した列幅を厳密に固定する
        （autoレイアウトだと内容の幅によって列が広がり、スティッキー列のズレの原因になる）。
        widthは全列の合計と完全一致させ、100%指定による余白分の比例拡大も起きないようにする */
-    #recordsTable { table-layout: fixed; width: 1884px; }
+    #recordsTable { table-layout: fixed; width: 2037px; }
     th { background: #FCF6E9; color: var(--text-secondary); font-weight: 500; font-size: 10.5px; }
     tr.totalRow td { font-weight: bold; background: #F1EFE6; }
     select, button, input[type=date], input[type=text] {
@@ -258,6 +258,11 @@ button:disabled {
     #recordsTable .col-media   { width: 90px; }
     #recordsTable .col-status  { width: 90px; }
     #recordsTable .col-time    { width: 65px; }
+    #recordsTable .col-hopedate { width: 88px; }
+    #recordsTable .col-hopetime { width: 65px; }
+    /* 体験希望日・時間：メールから自動で入る参考値なので薄く。体験会日・時間：担当者が確定入力した値なので太字で濃く */
+    #recordsTable th.hopeCol, #recordsTable td.hopeCol { color: #9A8F78; font-weight: 400; }
+    #recordsTable td.confirmedCol { font-weight: 700; }
     #recordsTable .col-staff   { width: 64px; }
     #recordsTable .col-done    { width: 48px; }
     #recordsTable .col-result  { width: 40px; }
@@ -666,7 +671,7 @@ button:disabled {
       }
       /* チェック列を28→44pxへ拡大した分（+16px）をテーブル全体の固定幅にも反映する
          （table-layout:fixedのまま、他の列幅は一切変更しない） */
-      #recordsTable { width: 1900px; }
+      #recordsTable { width: 2053px; }
     }
 
     /* ==== 起動時のオープニング演出 ====

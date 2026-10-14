@@ -621,8 +621,10 @@
           '<td class="col-status">' + (r['状況'] ? '<span class="status ' + statusClass_(r['状況']) + '">' + escapeHtml_(r['状況']) + '</span>' : '') + '</td>' +
           '<td class="col-contact" data-action="stopPropagation"><input type="checkbox" class="contactCheck" data-no="' + escapeAttr_(no) + '"' +
             (r['連絡済みチェック'] ? ' checked' : '') + ' data-change-action="updateContactCheck"></td>' +
-          '<td class="col-date">' + escapeHtml_(toDateInputValue_(r['体験会日'])) + '</td>' +
-          '<td class="col-time">' + escapeHtml_(r['時間'] || '') + '</td>' +
+          '<td class="col-hopedate hopeCol">' + escapeHtml_(hopeDateText_(r['体験希望日'])) + '</td>' +
+          '<td class="col-hopetime hopeCol">' + escapeHtml_(hopeTimeText_(r['体験希望時間'])) + '</td>' +
+          '<td class="col-date confirmedCol">' + escapeHtml_(toDateInputValue_(r['体験会日'])) + '</td>' +
+          '<td class="col-time confirmedCol">' + escapeHtml_(r['時間'] || '') + '</td>' +
           '<td class="col-staff">' + escapeHtml_(r['担当者'] || '') + '</td>' +
           '<td class="col-staff">' + escapeHtml_(r['サブ担当'] || '') + '</td>' +
           '<td class="col-done">' + escapeHtml_(r['体験会実施状況'] || '') + '</td>' +
@@ -1722,6 +1724,19 @@
       const d = new Date(v);
       if (isNaN(d)) return '';
       return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+
+    // 体験希望日・体験希望時間（GAS側はテキスト形式のYYYY-MM-DD / HH:MM）。
+    // 日付文字列をnew Dateに通すとUTC扱いでずれ得るため、形式が合えばそのまま表示し、
+    // Date型などで来た場合のみ「体験会日」と同じ書式（YYYY-MM-DD）に変換する
+    function hopeDateText_(v) {
+      if (!v) return '';
+      if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+      return toDateInputValue_(v);
+    }
+
+    function hopeTimeText_(v) {
+      return (typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v)) ? v : '';
     }
 
     function escapeHtml_(s) {
