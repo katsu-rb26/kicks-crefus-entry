@@ -367,21 +367,21 @@
     let sortOrder = 'desc'; // 受付日時の並び順。デフォルトは降順（新しい受付が一番上）
     let onlySelectedFilter = null; // 「選択した行のみ表示」中のNoの配列。nullの時は全件表示
 
+    // 戻り値のPromiseは、呼び出し元で「処理中」表示をまとめたい場合にのみ利用する
+    // （単純な再描画目的の呼び出しは、従来通り戻り値を無視してfire-and-forgetで構わない）
     function loadRecords() {
       const school = document.getElementById('schoolFilter').value;
       rawTextCache = {}; // 表示内容が変わるたびにキャッシュを作り直す
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function (records) {
-          const filtered = applySortOrder_(applyOnlySelectedFilter_(applyDateFilter_(applyAreaFilter_(records))));
-          renderTable(filtered);
-          prefetchRawTexts_(filtered);
-          updateResultCount_(filtered.length);
-        })
-        .withFailureHandler(function (e) {
-          console.error('getRecords failed:', e);
-          alert('一覧の取得でエラーが発生しました: ' + gasErrorText_(e));
-        })
-        .getRecords(school || null);
+      return callGasAsync_('getRecords', [school || null]).then(function (records) {
+        const filtered = applySortOrder_(applyOnlySelectedFilter_(applyDateFilter_(applyAreaFilter_(records))));
+        renderTable(filtered);
+        prefetchRawTexts_(filtered);
+        updateResultCount_(filtered.length);
+      }).catch(function (e) {
+        if (isAuthRequiredError_(e)) return;
+        console.error('getRecords failed:', e);
+        alert('一覧の取得でエラーが発生しました: ' + gasErrorText_(e));
+      });
     }
 
     function updateResultCount_(count) {
@@ -470,6 +470,17 @@
       loadRecords();
     }
 
+    // 受付一覧タブの操作ボタン群（再読み込み・選択した行のみ表示・ごみ箱へ移動・ごみ箱を見る）は
+    // 「操作の範囲」としてまとめて押せなくする（案B）
+    function listOpsScopeButtons_() {
+      return [
+        document.getElementById('reloadListBtn'),
+        document.getElementById('onlySelectedBtn'),
+        document.getElementById('moveToTrashBtn'),
+        document.getElementById('trashViewBtn')
+      ];
+    }
+
     // 「選択した行のみ表示」ボタンのオン・オフを切り替える
     function toggleOnlySelected_() {
       if (onlySelectedFilter) {
@@ -479,8 +490,11 @@
         if (checked.length === 0) { alert('表示する行を選択してください'); return; }
         onlySelectedFilter = checked;
       }
-      updateOnlySelectedButton_();
-      loadRecords();
+      updateOnlySelectedButton_(); // ボタンの文言(最終状態)を先に確定させてから、その文言を基準に処理中表示へ切り替える
+      const btn = document.getElementById('onlySelectedBtn');
+      withBusy_('listOps', listOpsScopeButtons_(), btn, '読み込み中…', function () {
+        return loadRecords();
+      });
     }
 
     function updateOnlySelectedButton_() {
@@ -668,12 +682,16 @@
 
     // 「解析」ボタン：貼り付けたメール本文をparseInquiryText()に通し、結果を各フィールドに
     // 自動入力する（この時点ではまだ受付データへの保存はしない。登録前に内容を確認・修正できる）
+    function registerModalScopeButtons_() {
+      return [document.getElementById('registerParseBtn'), document.getElementById('registerSaveBtn')];
+    }
+
     function parseRegisterForm_() {
       const text = document.getElementById('register-pasteBox').value;
       if (!text.trim()) { alert('メール本文を貼り付けてください'); return; }
 
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function (parsed) {
+      withBusy_('registerModal', registerModalScopeButtons_(), document.getElementById('registerParseBtn'), '処理中…', function () {
+        return callGasAsync_('parseInquiryText', [text]).then(function (parsed) {
           document.getElementById('register-教室名').value = parsed['school'] || '';
           document.getElementById('register-KicksCrefus').value = parsed['kicksCrefus'] || '';
           document.getElementById('register-生徒名').value = parsed['studentName'] || '';
@@ -692,9 +710,11 @@
 
           // 解析結果が入った状態で、ここで初めて入力項目セクションを表示する
           showRegisterFieldsSection_(true);
-        })
-        .withFailureHandler(function (e) { alert('解析でエラーが発生しました: ' + gasErrorText_(e)); })
-        .parseInquiryText(text);
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
+          alert('解析でエラーが発生しました: ' + gasErrorText_(e));
+        });
+      });
     }
 
     function saveRegisterModal() {
@@ -722,13 +742,15 @@
         if (!confirm('生徒名が未入力です。このまま登録しますか？')) return;
       }
 
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function () {
+      withBusy_('registerModal', registerModalScopeButtons_(), document.getElementById('registerSaveBtn'), '保存中…', function () {
+        return callGasAsync_('registerRecord', [record, receivedAtStr || null]).then(function () {
           closeRegisterModal();
           loadRecords();
-        })
-        .withFailureHandler(function (e) { alert('登録でエラーが発生しました: ' + gasErrorText_(e)); })
-        .registerRecord(record, receivedAtStr || null);
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
+          alert('登録でエラーが発生しました: ' + gasErrorText_(e));
+        });
+      });
     }
 
     // ==== レコード編集モーダル ====
@@ -794,13 +816,15 @@
         'マーク': selectedMarks
       };
 
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function () {
+      withBusy_('editModal', [document.getElementById('editModalSaveBtn')], document.getElementById('editModalSaveBtn'), '保存中…', function () {
+        return callGasAsync_('updateRecordFields', [no, fields]).then(function () {
           closeEditModal();
           loadRecords();
-        })
-        .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + gasErrorText_(e)); })
-        .updateRecordFields(no, fields);
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
+          alert('保存でエラーが発生しました: ' + gasErrorText_(e));
+        });
+      });
     }
 
     // ==== 生徒名・備考・本文セルのホバーポップアップ ====
@@ -992,15 +1016,16 @@
         if (!confirm(checked.length + '件をごみ箱へ移動します。よろしいですか？')) return;
       }
 
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function (res) {
+      const btn = document.getElementById('moveToTrashBtn');
+      withBusy_('listOps', listOpsScopeButtons_(), btn, '処理中…', function () {
+        return callGasAsync_('deleteRecords', [checked]).then(function (res) {
           alert(res.deletedCount + '件をごみ箱へ移動しました');
           loadRecords();
-        })
-        .withFailureHandler(function (e) {
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
           alert('ごみ箱への移動でエラーが発生しました: ' + gasErrorText_(e));
-        })
-        .deleteRecords(checked);
+        });
+      });
     }
 
     // ==== 集計ダッシュボード ====
@@ -1347,13 +1372,31 @@
         .getMasterListNames();
     }
 
+    // 戻り値のPromiseは、呼び出し元で「処理中」表示をまとめたい場合にのみ利用する
     function loadMasterList() {
       const name = document.getElementById('masterSelect').value;
-      if (!name) return;
-      window.KcbGas.scriptRun
-        .withSuccessHandler(renderMasterTable)
-        .withFailureHandler(function (e) { alert('マスタの取得でエラーが発生しました: ' + gasErrorText_(e)); })
-        .getMasterListData(name);
+      if (!name) return Promise.resolve();
+      return callGasAsync_('getMasterListData', [name]).then(renderMasterTable).catch(function (e) {
+        if (isAuthRequiredError_(e)) return;
+        alert('マスタの取得でエラーが発生しました: ' + gasErrorText_(e));
+      });
+    }
+
+    // マスタ管理タブの操作ボタン群（再読み込み・行を追加・保存）は「操作の範囲」としてまとめて押せなくする
+    function masterTabScopeButtons_() {
+      return [
+        document.getElementById('masterReloadBtn'),
+        document.getElementById('masterAddBtn'),
+        document.getElementById('masterSaveBtn')
+      ];
+    }
+
+    // ツールバーの「再読み込み」ボタン専用（プルダウン変更時のloadMasterList呼び出しは処理中表示の対象外）
+    function reloadMasterList_() {
+      const btn = document.getElementById('masterReloadBtn');
+      withBusy_('masterTab', masterTabScopeButtons_(), btn, '読み込み中…', function () {
+        return loadMasterList();
+      });
     }
 
     // マスタ管理タブの編集操作（追加・保存・並び替えヒント）は管理者のみ表示する。
@@ -1371,7 +1414,10 @@
       document.getElementById('listSection').style.display = 'none';
       document.getElementById('trashSection').style.display = 'block';
       document.getElementById('trashViewBtn').style.display = 'none';
-      loadTrashList_();
+      const btn = document.getElementById('trashViewBtn');
+      withBusy_('listOps', listOpsScopeButtons_(), btn, '読み込み中…', function () {
+        return loadTrashList_();
+      });
     }
 
     function showListView_() {
@@ -1380,11 +1426,12 @@
       document.getElementById('trashViewBtn').style.display = '';
     }
 
+    // 戻り値のPromiseは、呼び出し元で「処理中」表示をまとめたい場合にのみ利用する
     function loadTrashList_() {
-      window.KcbGas.scriptRun
-        .withSuccessHandler(renderTrashTable_)
-        .withFailureHandler(function (e) { alert('ごみ箱の取得でエラーが発生しました: ' + gasErrorText_(e)); })
-        .getTrashRecords();
+      return callGasAsync_('getTrashRecords').then(renderTrashTable_).catch(function (e) {
+        if (isAuthRequiredError_(e)) return;
+        alert('ごみ箱の取得でエラーが発生しました: ' + gasErrorText_(e));
+      });
     }
 
     function renderTrashTable_(rows) {
@@ -1412,40 +1459,52 @@
         const actionTd = tr.lastElementChild;
         const restoreBtn = document.createElement('button');
         restoreBtn.type = 'button';
+        restoreBtn.className = 'kcbBusyMinW-restore';
         restoreBtn.textContent = '復元';
-        restoreBtn.onclick = function () { restoreTrashRow_(r['No']); };
+        restoreBtn.onclick = function () { restoreTrashRow_(r['No'], restoreBtn); };
         actionTd.appendChild(restoreBtn);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
+        deleteBtn.className = 'kcbBusyMinW-delete';
         deleteBtn.textContent = '完全に削除';
-        deleteBtn.onclick = function () { permanentlyDeleteTrashRow_(r['No']); };
+        deleteBtn.onclick = function () { permanentlyDeleteTrashRow_(r['No'], deleteBtn); };
         actionTd.appendChild(deleteBtn);
 
         tbody.appendChild(tr);
       });
     }
 
-    function restoreTrashRow_(no) {
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function () {
+    // ごみ箱の画面（範囲d）：復元・完全削除はテーブル内のどのボタンを押しても、
+    // テーブル全体の復元・削除ボタンをまとめて押せなくする
+    function trashScopeButtons_() {
+      return Array.from(document.querySelectorAll('#trashTable button'));
+    }
+
+    function restoreTrashRow_(no, btn) {
+      withBusy_('trashSection', trashScopeButtons_(), btn, '処理中…', function () {
+        return callGasAsync_('restoreFromTrash', [no]).then(function () {
           alert('復元しました');
           loadTrashList_();
           loadRecords();
-        })
-        .withFailureHandler(function (e) { alert('復元でエラーが発生しました: ' + gasErrorText_(e)); })
-        .restoreFromTrash(no);
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
+          alert('復元でエラーが発生しました: ' + gasErrorText_(e));
+        });
+      });
     }
 
-    function permanentlyDeleteTrashRow_(no) {
+    function permanentlyDeleteTrashRow_(no, btn) {
       if (!confirm('完全に削除します。この操作は元に戻せません。よろしいですか？')) return;
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function () {
+      withBusy_('trashSection', trashScopeButtons_(), btn, '処理中…', function () {
+        return callGasAsync_('permanentlyDeleteFromTrash', [no]).then(function () {
           alert('完全に削除しました');
           loadTrashList_();
-        })
-        .withFailureHandler(function (e) { alert('削除でエラーが発生しました: ' + gasErrorText_(e)); })
-        .permanentlyDeleteFromTrash(no);
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
+          alert('削除でエラーが発生しました: ' + gasErrorText_(e));
+        });
+      });
     }
 
     function renderMasterTable(data) {
@@ -1559,8 +1618,9 @@
         });
       });
 
-      window.KcbGas.scriptRun
-        .withSuccessHandler(function (res) {
+      const btn = document.getElementById('masterSaveBtn');
+      withBusy_('masterTab', masterTabScopeButtons_(), btn, '保存中…', function () {
+        return callGasAsync_('saveMasterListData', [name, rows]).then(function (res) {
           alert('保存しました（' + res.rowCount + '件）');
           loadMasterList();
           if (name === 'マークマスタ') {
@@ -1594,9 +1654,11 @@
               })
               .getSchoolAreaMap();
           }
-        })
-        .withFailureHandler(function (e) { alert('保存でエラーが発生しました: ' + gasErrorText_(e)); })
-        .saveMasterListData(name, rows);
+        }).catch(function (e) {
+          if (isAuthRequiredError_(e)) return;
+          alert('保存でエラーが発生しました: ' + gasErrorText_(e));
+        });
+      });
     }
 
     // ==== 共通ユーティリティ ====
@@ -1730,8 +1792,10 @@
 
     // 一覧の「再読み込み」ボタン専用（一覧の再取得とあわせて保留件数も更新する）
     function reloadListAndSpamHold_() {
-      loadRecords();
-      refreshSpamHoldCounts_();
+      const btn = document.getElementById('reloadListBtn');
+      withBusy_('listOps', listOpsScopeButtons_(), btn, '読み込み中…', function () {
+        return Promise.all([loadRecords(), refreshSpamHoldCounts_()]);
+      });
     }
 
     // ==== 保留メール（営業の疑い）確認: 確認パネル（モーダル） ====
@@ -1962,6 +2026,7 @@ var CLICK_ACTIONS = {
   openKpiChart_: function (el, arg) { openKpiChart_(arg); },
   saveEnrollmentInputs_: function () { saveEnrollmentInputs_(); },
   loadMasterList: function () { loadMasterList(); },
+  reloadMasterList_: function () { reloadMasterList_(); },
   addMasterRow: function () { addMasterRow(); },
   saveMasterList: function () { saveMasterList(); },
   setRegisterMode_: function (el, arg) { setRegisterMode_(arg); },

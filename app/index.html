@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon-180.png?v=20261015a">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png?v=20261015a">
 <link rel="icon" href="assets/icons/favicon.ico?v=20261015a">
-<link rel="stylesheet" href="css/style.css?v=20261014b">
+<link rel="stylesheet" href="css/style.css?v=20261015b">
 </head>
 <body>
 
@@ -62,7 +62,7 @@
 
     <div class="textRight">
       <button type="button" id="openRegisterModalBtn" class="btnPrimary" data-action="openRegisterModal">＋ 新規登録</button>
-      <button type="button" id="trashViewBtn" class="btnLink" data-action="showTrashView_">🗑 ごみ箱を見る</button>
+      <button type="button" id="trashViewBtn" class="btnLink kcbBusyMinW-trashView" data-action="showTrashView_">🗑 ごみ箱を見る</button>
     </div>
 
     <div id="listSection">
@@ -88,9 +88,9 @@
         <button type="button" class="btnLink dateFilterClearBtn" data-action="clearDateFilter_">クリア</button>
       </div>
       <div class="toolbarButtonGroup">
-        <button class="btnSecondary" data-action="reloadListAndSpamHold_">再読み込み</button>
-        <button type="button" id="onlySelectedBtn" class="btnSecondary" data-action="toggleOnlySelected_">選択した行のみ表示</button>
-        <button class="btnSecondary btnWarn" data-action="moveSelectedToTrash">ごみ箱へ移動</button>
+        <button type="button" id="reloadListBtn" class="btnSecondary kcbBusyMinW-reload" data-action="reloadListAndSpamHold_">再読み込み</button>
+        <button type="button" id="onlySelectedBtn" class="btnSecondary kcbBusyMinW-onlySelected" data-action="toggleOnlySelected_">選択した行のみ表示</button>
+        <button type="button" id="moveToTrashBtn" class="btnSecondary btnWarn kcbBusyMinW-trash" data-action="moveSelectedToTrash">ごみ箱へ移動</button>
       </div>
 
       <div id="spamHoldBanner" class="spamHoldBanner isHidden">
@@ -278,9 +278,9 @@
     <h3 class="tabHeading">⚙️ マスタ管理</h3>
     <label>マスタを選択：</label>
     <select id="masterSelect" data-change-action="loadMasterList"></select>
-    <button data-action="loadMasterList">再読み込み</button>
-    <button id="masterAddBtn" data-action="addMasterRow">行を追加</button>
-    <button id="masterSaveBtn" data-action="saveMasterList">保存</button>
+    <button type="button" id="masterReloadBtn" class="kcbBusyMinW-masterReload" data-action="reloadMasterList_">再読み込み</button>
+    <button type="button" id="masterAddBtn" class="kcbBusyMinW-masterAdd" data-action="addMasterRow">行を追加</button>
+    <button type="button" id="masterSaveBtn" class="kcbBusyMinW-masterSave" data-action="saveMasterList">保存</button>
     <div id="masterDragHint" class="hintText blockMy4">
       左端の「⋮⋮」をドラッグすると行の並び替えができます。並び替え後は「保存」を押すまで反映されません。
     </div>
@@ -312,7 +312,7 @@
           <textarea id="register-pasteBox" class="pasteBoxHeight" placeholder="問い合わせメールの本文をそのまま貼り付けてください"></textarea>
         </div>
         <div class="modalButtons leftAlignMb8">
-          <button type="button" id="registerParseBtn">解析して自動入力</button>
+          <button type="button" id="registerParseBtn" class="kcbBusyMinW-parse">解析して自動入力</button>
         </div>
         <div class="hintText mb10">
           ↓ 自動入力された内容です。登録前に確認・修正してください。
@@ -346,7 +346,7 @@
         <div class="modalFieldRow"><label>受付日時</label><input type="datetime-local" id="register-受付日"></div>
 
         <div class="modalButtons">
-          <button type="button" id="registerSaveBtn">登録</button>
+          <button type="button" id="registerSaveBtn" class="kcbBusyMinW-save">登録</button>
           <button type="button" id="registerCancelBtn">キャンセル</button>
         </div>
       </div>
@@ -388,7 +388,7 @@
       <div class="modalFieldRow"><label>メモ</label><textarea id="edit-メモ" placeholder="担当者の自由記述"></textarea></div>
       <div class="modalFieldRow"><label>備考</label><input type="text" id="edit-備考"></div>
       <div class="modalButtons">
-        <button type="button" id="editModalSaveBtn">保存</button>
+        <button type="button" id="editModalSaveBtn" class="kcbBusyMinW-save">保存</button>
         <button type="button" id="editModalCancelBtn">閉じる</button>
       </div>
     </div>
@@ -438,11 +438,11 @@
 
   <script src="https://accounts.google.com/gsi/client" defer></script>
   <script src="vendor/chart.umd.min.js" defer></script>
-  <script src="js/config.js?v=20261014b" defer></script>
-  <script src="js/messages.js?v=20261014b" defer></script>
-  <script src="js/gas-shim.js?v=20261014b" defer></script>
-  <script src="js/auth.js?v=20261014b" defer></script>
-  <script src="js/board.js?v=20261014b" defer></script>
-  <script src="js/app.js?v=20261014b" defer></script>
+  <script src="js/config.js?v=20261015b" defer></script>
+  <script src="js/messages.js?v=20261015b" defer></script>
+  <script src="js/gas-shim.js?v=20261015b" defer></script>
+  <script src="js/auth.js?v=20261015b" defer></script>
+  <script src="js/board.js?v=20261015b" defer></script>
+  <script src="js/app.js?v=20261015b" defer></script>
 </body>
 </html>
