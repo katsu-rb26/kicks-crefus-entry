@@ -71,6 +71,11 @@
     <div id="listSection">
      <div class="listLayout">
       <div class="filterPanel" id="filterPanel">
+      <button type="button" id="filterToggleBtn" class="filterToggle" aria-expanded="false" aria-controls="filterPanelBody" data-action="toggleFilterPanel_">
+        <span class="filterToggleText"><span class="filterToggleTitle">絞り込み</span> <span id="filterSummary" class="filterSummary"></span></span>
+        <span class="filterToggleArrow" aria-hidden="true">▾</span>
+      </button>
+      <div class="filterPanelBody" id="filterPanelBody">
       <div class="filterGroup">
         <span class="filterLabel">🏫 教室で絞り込み</span>
         <select id="schoolFilter" class="filterSelect" data-change-action="refreshFilteredView_">
@@ -91,6 +96,7 @@
           <input type="checkbox" id="dateFilterIncludeUnset" data-change-action="onDateFilterChange_">未設定も表示
         </label>
         <button type="button" class="btnLink dateFilterClearBtn" data-action="clearDateFilter_">クリア</button>
+      </div>
       </div>
       </div>
       <div class="toolbarButtonGroup">

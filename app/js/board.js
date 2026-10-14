@@ -396,6 +396,7 @@
     // 絞り込み・並び替え・タブ切り替え用。全件キャッシュがRECORDS_STALE_MS以内なら
     // それを使って画面側だけで再描画し、超えていればサーバーから全件を取り直す
     function refreshFilteredView_() {
+      updateFilterSummary_();
       if (allRecordsCache_ !== null && (Date.now() - allRecordsFetchedAt_) < RECORDS_STALE_MS) {
         renderFilteredRecords_();
         return Promise.resolve();
@@ -403,7 +404,34 @@
       return loadRecords();
     }
 
+    // スマホ幅で折りたたんだ絞り込み欄に出す1行要約（textContentで設定）
+    function updateFilterSummary_() {
+      const el = document.getElementById('filterSummary');
+      if (!el) return;
+      const sel = document.getElementById('schoolFilter');
+      const school = sel && sel.value ? sel.value : '全教室';
+      const fmt = function (v) { return v ? Number(v.slice(5, 7)) + '/' + Number(v.slice(8, 10)) : ''; };
+      const startStr = document.getElementById('dateFilterStart').value;
+      const endStr = document.getElementById('dateFilterEnd').value;
+      let dateText = 'なし';
+      if (startStr || endStr) {
+        dateText = fmt(startStr) + '〜' + fmt(endStr);
+        if (document.getElementById('dateFilterIncludeUnset').checked) dateText += '＋未設定';
+      }
+      el.textContent = '教室: ' + school + '／日付: ' + dateText;
+    }
+
+    // スマホ幅の絞り込み欄の開閉（PC幅ではCSSで常に開いた状態）
+    function toggleFilterPanel_() {
+      const panel = document.getElementById('filterPanel');
+      const btn = document.getElementById('filterToggleBtn');
+      const open = !panel.classList.contains('isOpen');
+      panel.classList.toggle('isOpen', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
     function renderFilteredRecords_() {
+      updateFilterSummary_();
       const filtered = applySortOrder_(applyOnlySelectedFilter_(applyDateFilter_(applyAreaFilter_(applySchoolFilter_(allRecordsCache_ || [])))));
       renderTable(filtered);
       prefetchRawTexts_(filtered);
@@ -2111,6 +2139,7 @@ var CLICK_ACTIONS = {
   showTrashView_: function () { showTrashView_(); },
   setDateFilterShortcut_: function (el, arg) { setDateFilterShortcut_(arg); },
   clearDateFilter_: function () { clearDateFilter_(); },
+  toggleFilterPanel_: function () { toggleFilterPanel_(); },
   loadRecords: function () { loadRecords(); },
   toggleOnlySelected_: function () { toggleOnlySelected_(); },
   moveSelectedToTrash: function () { moveSelectedToTrash(); },

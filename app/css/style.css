@@ -471,6 +471,9 @@ button:disabled {
     .dateFilterUnsetLabel input { margin: 0; cursor: pointer; }
     .dateFilterClearBtn { margin: 0; padding: 5px 10px; font-size: 11.5px; }
 
+    /* 絞り込み欄の開閉見出しはスマホ幅専用（PC幅では出さず、本体は常に表示） */
+    .filterToggle { display: none; }
+
     .resultCount { font-size: 12px; color: var(--text-secondary); margin: 8px 0 2px; }
 
     .statCallouts { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
@@ -612,6 +615,19 @@ button:disabled {
         border-radius: 6px; padding: 11px 14px;
       }
       .trashViewTail { display: none; }
+
+      /* 絞り込み：2つの枠を1つの開閉部分にまとめる（初期は閉）。閉じている間は1行要約だけ表示 */
+      .filterToggle {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin: 8px 0 4px;
+        background: var(--surface); border: 1.5px solid var(--accent); color: var(--text-primary);
+        border-radius: 8px; text-align: left; font-size: 14px;
+      }
+      .filterToggleText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .filterToggleTitle { font-weight: 700; color: var(--accent-text); }
+      .filterToggleArrow { flex: 0 0 auto; color: var(--accent-text); transition: transform 0.15s; }
+      .filterPanel.isOpen .filterToggleArrow { transform: rotate(180deg); }
+      .filterPanelBody { display: none; }
+      .filterPanel.isOpen .filterPanelBody { display: block; }
 
       /* 一覧まわりを2列gridで並べる：件数（左）＋再読み込み（右）、選択のみ表示＋ごみ箱へ移動（同幅・同高さ） */
       .listLayout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; }
