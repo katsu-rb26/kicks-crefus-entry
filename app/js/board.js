@@ -3,6 +3,15 @@
     let CURRENT_USER_AREAS = []; // プライマリ→2番目→3番目の順
     let IS_MASTER_ADMIN = false; // マスタ管理タブの編集UI表示可否（実際の権限判定はサーバー側で必須）
 
+    // 一覧の全件取得(getRecords)をこの時間以内に行っていれば、絞り込み・並び替え・タブ切り替えは
+    // 画面側のキャッシュ(allRecordsCache_)だけで処理し、サーバーを呼び直さない
+    const RECORDS_STALE_MS = 180000;
+    let allRecordsCache_ = null; // 直近のgetRecords(null)の結果（全教室・全件）。nullは未取得
+    let allRecordsFetchedAt_ = 0; // allRecordsCache_を取得した時刻（Date.now()）
+    // 絞り込み関数(applyXxxFilter_)・並び替え(applySortOrder_)は配列のみ複製し、中の各レコードの
+    // オブジェクト自体は複製しない前提。renderTable()が作るrecordCacheの要素もこれと同じ参照のため、
+    // updateContactCheck()でrecordCache[no]を書き換えるとallRecordsCache_側にも自動的に反映される
+
     let dashboardLoaded = false;
     let lastDashboardData = null; // KPIグラフ描画用に最新の集計データを保持
     let dashboardChartInstance = null; // Chart.jsのインスタンス（切り替え時にdestroyしてから再生成）
@@ -292,7 +301,7 @@
         btn.onclick = function () {
           currentAreaFilter = area;
           renderAreaTabs_();
-          loadRecords();
+          refreshFilteredView_();
         };
         box.appendChild(btn);
       });
@@ -368,19 +377,43 @@
 
     // 戻り値のPromiseは、呼び出し元で「処理中」表示をまとめたい場合にのみ利用する
     // （単純な再描画目的の呼び出しは、従来通り戻り値を無視してfire-and-forgetで構わない）
+    // サーバーから全件を必ず取り直す（初回表示・再読み込み・保存系操作のあとなど）。
+    // 教室フィルタはクライアント側(applySchoolFilter_)で適用するため、ここではnull(全教室)で取得する
     function loadRecords() {
-      const school = document.getElementById('schoolFilter').value;
       rawTextCache = {}; // 表示内容が変わるたびにキャッシュを作り直す
-      return callGasAsync_('getRecords', [school || null]).then(function (records) {
-        const filtered = applySortOrder_(applyOnlySelectedFilter_(applyDateFilter_(applyAreaFilter_(records))));
-        renderTable(filtered);
-        prefetchRawTexts_(filtered);
-        updateResultCount_(filtered.length);
+      return callGasAsync_('getRecords', [null]).then(function (records) {
+        allRecordsCache_ = records || [];
+        allRecordsFetchedAt_ = Date.now();
+        renderFilteredRecords_();
       }).catch(function (e) {
         if (isAuthRequiredError_(e)) return;
         console.error('getRecords failed:', e);
         alert('一覧の取得でエラーが発生しました: ' + gasErrorText_(e));
       });
+    }
+
+    // 絞り込み・並び替え・タブ切り替え用。全件キャッシュがRECORDS_STALE_MS以内なら
+    // それを使って画面側だけで再描画し、超えていればサーバーから全件を取り直す
+    function refreshFilteredView_() {
+      if (allRecordsCache_ !== null && (Date.now() - allRecordsFetchedAt_) < RECORDS_STALE_MS) {
+        renderFilteredRecords_();
+        return Promise.resolve();
+      }
+      return loadRecords();
+    }
+
+    function renderFilteredRecords_() {
+      const filtered = applySortOrder_(applyOnlySelectedFilter_(applyDateFilter_(applyAreaFilter_(applySchoolFilter_(allRecordsCache_ || [])))));
+      renderTable(filtered);
+      prefetchRawTexts_(filtered);
+      updateResultCount_(filtered.length);
+    }
+
+    // 教室での絞り込み（全教室＝絞り込みなし）
+    function applySchoolFilter_(records) {
+      const school = document.getElementById('schoolFilter').value;
+      if (!school || !records) return records;
+      return records.filter(function (r) { return r['教室名'] === school; });
     }
 
     function updateResultCount_(count) {
@@ -419,7 +452,7 @@
     // 日付入力欄を手動で変更した場合は、ショートカットボタンのハイライトを解除してから再読込する
     function onDateFilterChange_() {
       clearDateShortcutActive_();
-      loadRecords();
+      refreshFilteredView_();
     }
 
     // 「今日」「今週」「来週」ショートカット。週は月曜始まり・日曜終わりで統一する
@@ -448,7 +481,7 @@
       document.getElementById('dateFilterStart').value = fmt(start);
       document.getElementById('dateFilterEnd').value = fmt(end);
       highlightDateShortcut_(kind);
-      loadRecords();
+      refreshFilteredView_();
     }
 
     function highlightDateShortcut_(kind) {
@@ -466,7 +499,7 @@
       document.getElementById('dateFilterEnd').value = '';
       document.getElementById('dateFilterIncludeUnset').checked = false;
       clearDateShortcutActive_();
-      loadRecords();
+      refreshFilteredView_();
     }
 
     // 受付一覧タブの操作ボタン群（再読み込み・選択した行のみ表示・ごみ箱へ移動・ごみ箱を見る）は
@@ -492,7 +525,7 @@
       updateOnlySelectedButton_(); // ボタンの文言(最終状態)を先に確定させてから、その文言を基準に処理中表示へ切り替える
       const btn = document.getElementById('onlySelectedBtn');
       withBusy_('listOps', listOpsScopeButtons_(), btn, '読み込み中…', function () {
-        return loadRecords();
+        return refreshFilteredView_();
       });
     }
 
@@ -518,7 +551,7 @@
     function toggleSort_() {
       sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
       updateSortArrow_();
-      loadRecords();
+      refreshFilteredView_();
     }
 
     function updateSortArrow_() {
@@ -2055,7 +2088,7 @@ var CLICK_ACTIONS = {
 };
 
 var CHANGE_ACTIONS = {
-  loadRecords: function () { loadRecords(); },
+  refreshFilteredView_: function () { refreshFilteredView_(); },
   onDateFilterChange_: function () { onDateFilterChange_(); },
   loadMasterList: function () { loadMasterList(); },
   updateContactCheck: function (el) { updateContactCheck(el); }
