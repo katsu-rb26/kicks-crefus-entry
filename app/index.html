@@ -65,10 +65,12 @@
 
     <div class="textRight">
       <button type="button" id="openRegisterModalBtn" class="btnPrimary" data-action="openRegisterModal">＋ 新規登録</button>
-      <button type="button" id="trashViewBtn" class="btnLink kcbBusyMinW-trashView" data-action="showTrashView_">🗑 ごみ箱を見る</button>
+      <button type="button" id="trashViewBtn" class="btnLink kcbBusyMinW-trashView" data-action="showTrashView_">🗑 ごみ箱<span class="trashViewTail">を見る</span></button>
     </div>
 
     <div id="listSection">
+     <div class="listLayout">
+      <div class="filterPanel" id="filterPanel">
       <div class="filterGroup">
         <span class="filterLabel">🏫 教室で絞り込み</span>
         <select id="schoolFilter" class="filterSelect" data-change-action="refreshFilteredView_">
@@ -89,6 +91,7 @@
           <input type="checkbox" id="dateFilterIncludeUnset" data-change-action="onDateFilterChange_">未設定も表示
         </label>
         <button type="button" class="btnLink dateFilterClearBtn" data-action="clearDateFilter_">クリア</button>
+      </div>
       </div>
       <div class="toolbarButtonGroup">
         <button type="button" id="reloadListBtn" class="btnSecondary kcbBusyMinW-reload" data-action="reloadListAndSpamHold_">再読み込み</button>
@@ -136,6 +139,7 @@
           <tbody></tbody>
         </table>
       </div>
+     </div>
     </div>
 
     <div id="trashSection" class="isHidden">

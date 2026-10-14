@@ -591,11 +591,43 @@ button:disabled {
     @media (max-width: 700px) {
       body { margin: 12px; }
 
-      /* ヘッダー：ロゴとログイン中表示を同じ行に（ロゴ左・ログイン中を右端寄せ） */
-      .appBrand { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
+      /* ヘッダー：1行目＝タイトル（小さく1行）、2行目＝左にログイン中・右にログアウト。
+         .appBrand/.brandLogos を display:contents にして子要素をgridへ直接並べ、DIC学園グループのロゴは非表示 */
+      .appHeader { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; margin: 0 0 8px; }
+      .appTitle { grid-column: 1 / -1; flex-wrap: nowrap; column-gap: 6px; white-space: nowrap; }
+      .appTitleLogo { height: 16px; }
+      .appTitleMain { font-size: 15px; letter-spacing: 0.5px; }
+      .appTitleYear { font-size: 11px; letter-spacing: 0; }
+      .appBrand, .brandLogos { display: contents; }
+      .brandLogo-corp { display: none; }
+      .appUserBadge { grid-row: 2; grid-column: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+      .logoutBtn { grid-row: 2; grid-column: 2; font-size: 12.5px; padding: 6px 12px; min-height: 40px; }
 
-      /* タイトルロゴ：折り返しに耐えられるよう少し縮小 */
-      .appTitleLogo { height: 18px; }
+      /* 操作の1行目：新規登録（主ボタン・幅いっぱい）＋ごみ箱（枠線ボタン） */
+      .textRight { display: flex; gap: 8px; text-align: left; }
+      .textRight .btnPrimary { flex: 1 1 auto; min-height: 44px; margin: 0; }
+      .textRight .btnLink {
+        flex: 0 0 auto; min-width: 0; min-height: 44px; margin: 0;
+        background: var(--surface); border: 1.5px solid var(--border-strong); color: var(--text-secondary);
+        border-radius: 6px; padding: 11px 14px;
+      }
+      .trashViewTail { display: none; }
+
+      /* 一覧まわりを2列gridで並べる：件数（左）＋再読み込み（右）、選択のみ表示＋ごみ箱へ移動（同幅・同高さ） */
+      .listLayout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; }
+      .toolbarButtonGroup { display: contents; }
+      .filterPanel { grid-column: 1 / -1; grid-row: 1; }
+      .resultCount { grid-column: 1; grid-row: 2; margin: 0; }
+      #reloadListBtn { grid-column: 2; grid-row: 2; justify-self: end; min-width: 0; margin: 0; }
+      #onlySelectedBtn { grid-column: 1; grid-row: 3; min-width: 0; margin: 0; }
+      #moveToTrashBtn { grid-column: 2; grid-row: 3; min-width: 0; margin: 0; border-color: #A32D2D; color: #A32D2D; }
+      #moveToTrashBtn:hover { background: #FBEAEA; border-color: #A32D2D; color: #A32D2D; }
+      .spamHoldBanner { grid-column: 1 / -1; grid-row: 4; }
+      .listLayout .tableScroll { grid-column: 1 / -1; grid-row: 5; min-width: 0; }
+
+      /* タイトル見出し（📋 受付一覧）は縦幅を詰める */
+      #tabPanel-list .tabHeading { margin: 10px 0 6px; }
+      #tabPanel-list .toolbarDivider { margin: 6px 0 8px; }
 
       /* エリアタブ：折り返さず横一列でスクロール（PC一覧表と同じ考え方）、高さ・余白をボタン間で統一 */
       .areaTabs {
@@ -603,10 +635,6 @@ button:disabled {
         padding-bottom: 6px; margin: 8px 0;
       }
       .areaTab { flex: 0 0 auto; white-space: nowrap; }
-
-      /* 再読み込み・選択した行のみ表示・ごみ箱へ移動：入る幅までは横並び、収まらなければ折り返す */
-      .toolbarButtonGroup { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
-      .toolbarButtonGroup button { margin: 0; }
 
       /* ボタン・プルダウン・入力欄のタップ領域を拡大し、iOSでのフォーカス時自動ズームを防ぐため16px以上に */
       select, button, input[type=date], input[type=text] {

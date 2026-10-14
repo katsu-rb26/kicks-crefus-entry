@@ -119,7 +119,7 @@
       if (isScopeBusy_(scopeKey)) return Promise.resolve();
       busyScopes_[scopeKey] = true;
 
-      const originalText = triggerBtn ? triggerBtn.textContent : null;
+      const originalNodes = triggerBtn ? Array.prototype.map.call(triggerBtn.childNodes, function (n) { return n.cloneNode(true); }) : null;
       scopeButtons.forEach(function (btn) { if (btn) btn.disabled = true; });
       if (triggerBtn) {
         triggerBtn.classList.add('isBusy');
@@ -135,7 +135,8 @@
         scopeButtons.forEach(function (btn) { if (btn) btn.disabled = false; });
         if (triggerBtn) {
           triggerBtn.classList.remove('isBusy');
-          triggerBtn.textContent = originalText;
+          triggerBtn.textContent = '';
+          originalNodes.forEach(function (n) { triggerBtn.appendChild(n); });
         }
       });
     }
